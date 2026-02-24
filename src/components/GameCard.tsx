@@ -28,7 +28,7 @@ const GameCard = ({ game, onBorrowClick }: GameCardProps) => {
         <i className="fas fa-gamepad text-white text-6xl"></i>
       </div>
       <div className="p-4">
-        <h3 className="font-bold text-lg mb-2">{game.title}</h3>
+        <h3 className="font-bold text-lg text-gray-900 mb-2">{game.title}</h3>
         <div className="flex items-center text-sm text-gray-600 mb-2">
           <i className={`${getPlatformIcon(game.platform)} mr-2`}></i>
           <span>{game.platform}</span>

@@ -10,19 +10,19 @@ const SearchFilter = () => {
               <input 
                 type="text" 
                 placeholder="Search games by title..." 
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="text-black w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
               <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
             </div>
           </div>
-          <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+          <select className="text-gray-900 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
             <option>All Platforms</option>
             <option>PlayStation 5</option>
             <option>Xbox Series X</option>
             <option>Nintendo Switch</option>
             <option>PC</option>
           </select>
-          <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+          <select className="text-gray-900 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
             <option>All Genres</option>
             <option>Action</option>
             <option>RPG</option>

@@ -65,13 +65,13 @@ const GameGrid = ({ onBorrowClick }: GameGridProps) => {
       <div className="flex justify-center mt-8">
         <nav className="flex space-x-2">
           <button className="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-            <i className="fas fa-chevron-left"></i>
+            <i className="fas fa-chevron-left text-gray-900"></i>
           </button>
           <button className="px-3 py-2 bg-indigo-600 text-white rounded-md">1</button>
-          <button className="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50">2</button>
-          <button className="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50">3</button>
-          <button className="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-            <i className="fas fa-chevron-right"></i>
+          <button className="px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50">2</button>
+          <button className="px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50">3</button>
+          <button className="px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50">
+            <i className="fas fa-chevron-right text-gray-900"></i>
           </button>
         </nav>
       </div>
