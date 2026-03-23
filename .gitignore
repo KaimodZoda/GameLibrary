@@ -39,3 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# seed files (contain sensitive data)
+prisma/seed.ts
+prisma/update.ts
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+prisma/dev.db
+prisma/*.db
+
+# Migration files (can contain sensitive schema)
+prisma/migrations/*.sql

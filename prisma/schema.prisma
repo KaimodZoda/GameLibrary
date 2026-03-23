@@ -10,6 +10,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("USER") // USER or ADMIN (string for SQLite)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  loans     Loan[]
+  approvedLoans Loan[] @relation("LoanApprover")
+  returnedLoans Loan[] @relation("ReturnApprover")
+}
+
 model Game {
   id        Int      @id @default(autoincrement())
   title     String
@@ -19,4 +34,30 @@ model Game {
   gradient  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  // Relations
+  loans     Loan[]
+}
+
+model Loan {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  gameId          Int
+  dateBorrowed    DateTime @default(now())
+  dueDate         DateTime
+  approvedAt       DateTime?
+  approvedBy       Int?
+  returnedAt       DateTime?
+  returnApprovedAt DateTime?
+  returnApprovedBy Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  // Relations
+  user            User @relation(fields: [userId], references: [id])
+  game            Game @relation(fields: [gameId], references: [id])
+  approver        User? @relation("LoanApprover", fields: [approvedBy], references: [id])
+  returnApprover  User? @relation("ReturnApprover", fields: [returnApprovedBy], references: [id])
+  
+  @@unique([userId, gameId, dateBorrowed])
 }

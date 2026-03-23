@@ -3,9 +3,11 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HeroSection from '@/components/HeroSection';
-import SearchFilter from '@/components/SearchFilter';
 import StatsSection from '@/components/StatsSection';
 import GameGrid from '@/components/GameGrid';
+import Container from '@/components/ui/Container';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 import { useState } from 'react';
 
 export default function Home() {
@@ -27,42 +29,45 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         <HeroSection />
-        <SearchFilter />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Container className="py-8">
           <StatsSection />
           <GameGrid onBorrowClick={handleBorrowClick} />
-        </div>
+        </Container>
         {showBorrowModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div 
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+            onClick={handleCloseModal}
+          >
+            <div 
+              className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3 className="text-xl font-bold mb-4">Borrow Game</h3>
               <div className="mb-4">
                 <p className="text-gray-600 mb-2">Game: <span className="font-semibold">{selectedGame?.title}</span></p>
                 <p className="text-gray-600 mb-2">Platform: <span className="font-semibold">{selectedGame?.platform}</span></p>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
-                <input 
-                  type="date" 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                <Input 
+                  type="date"
+                  label="Due Date"
                 />
               </div>
               <div className="flex justify-end space-x-3">
-                <button 
+                <Button 
                   onClick={handleCloseModal}
-                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button 
+                </Button>
+                <Button 
                   onClick={() => {
                     console.log(`Borrowing ${selectedGame?.title}`);
                     handleCloseModal();
                   }}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
                 >
                   Confirm Borrow
-                </button>
+                </Button>
               </div>
             </div>
           </div>

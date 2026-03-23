@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useSession, signOut } from 'next-auth/react';
 
 const Header = () => {
+  const { data: session, status } = useSession();
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -14,18 +16,51 @@ const Header = () => {
             </Link>
           </div>
           <div className="flex items-center space-x-4">
-            <button className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
+            <Link href="/" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
               <i className="fas fa-search mr-1"></i> Search
-            </button>
-            <Link 
-              href="/my-loans"
-              className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              <i className="fas fa-book mr-1"></i> My Loans
             </Link>
-            <button className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">
-              <i className="fas fa-user mr-1"></i> Login
-            </button>
+            {status === 'authenticated' ? (
+              <>
+                <Link 
+                  href="/my-loans"
+                  className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  <i className="fas fa-book mr-1"></i> My Loans
+                </Link>
+                {session?.user?.role === 'ADMIN' && (
+                  <Link 
+                    href="/admin"
+                    className="text-gray-600 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    <i className="fas fa-cog mr-1"></i> Admin
+                  </Link>
+                )}
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center">
+                    <i className="fas fa-user-circle text-gray-600 text-xl mr-2"></i>
+                    <span className="text-gray-700 font-medium">{session?.user?.name}</span>
+                    {session?.user?.role === 'ADMIN' && (
+                      <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                        Admin
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => signOut()}
+                    className="text-gray-600 hover:text-red-600 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    <i className="fas fa-sign-out-alt mr-1"></i> Sign out
+                  </button>
+                </div>
+              </>
+            ) : (
+              <Link 
+                href="/auth/signin"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
+              >
+                <i className="fas fa-user mr-1"></i> Sign in
+              </Link>
+            )}
           </div>
         </div>
       </div>

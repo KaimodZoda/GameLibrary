@@ -1,45 +1,48 @@
-import { useState, useMemo } from 'react';
-import { Game } from '@/types/game';
+import { useState } from 'react';
 
 interface UseGameFiltersReturn {
-  filteredGames: Game[];
   platform: string;
   setPlatform: (platform: string) => void;
   genre: string;
   setGenre: (genre: string) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
   applyFilters: () => void;
   hasActiveFilters: boolean;
+  getCurrentFilters: () => {
+    platform: string;
+    genre: string;
+    searchQuery: string;
+  };
 }
 
-export const useGameFilters = (allGames: Game[]): UseGameFiltersReturn => {
+export const useGameFilters = (): UseGameFiltersReturn => {
   const [platform, setPlatform] = useState('All Platforms');
-  const [appliedPlatform, setAppliedPlatform] = useState('All Platforms');
-
   const [genre, setGenre] = useState('All Genres');
-  const [appliedGenre, setAppliedGenre] = useState('All Genres');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredGames = useMemo(() => {
-    return allGames.filter(game => {
-      const platformMatch = appliedPlatform === 'All Platforms' || game.platform === appliedPlatform;
-      const genreMatch = appliedGenre === 'All Genres' || game.genre === appliedGenre;
-      return platformMatch && genreMatch;
-    });
-  }, [allGames, appliedPlatform, appliedGenre]);
+  const hasActiveFilters = platform !== 'All Platforms' || genre !== 'All Genres' || searchQuery !== '';
+
+  const getCurrentFilters = () => ({
+    platform,
+    genre,
+    searchQuery
+  });
 
   const applyFilters = () => {
-    setAppliedPlatform(platform);
-    setAppliedGenre(genre);
+    // This will be handled by the component that calls fetchFilteredGames
+    // Keeping the function for compatibility
   };
 
-  const hasActiveFilters = appliedPlatform !== 'All Platforms' || appliedGenre !== 'All Genres';
-
   return {
-    filteredGames,
     platform,
     setPlatform,
     genre,
     setGenre,
+    searchQuery,
+    setSearchQuery,
     applyFilters,
-    hasActiveFilters
+    hasActiveFilters,
+    getCurrentFilters
   };
 };

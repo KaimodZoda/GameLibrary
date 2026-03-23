@@ -6,23 +6,46 @@ interface UseGamesReturn {
   loading: boolean;
   error: string | null;
   refetch: () => void;
+  fetchFilteredGames: (filters: {
+    platform: string;
+    genre: string;
+    searchQuery: string;
+  }) => void;
 }
 
 export const useGames = (): UseGamesReturn => {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentFilters, setCurrentFilters] = useState({
+    platform: 'All Platforms',
+    genre: 'All Genres',
+    searchQuery: ''
+  });
 
-  const fetchGames = async () => {
+  const fetchGames = async (filters = currentFilters) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/games');
+      const params = new URLSearchParams();
+      if (filters.platform && filters.platform !== 'All Platforms') {
+        params.append('platform', filters.platform);
+      }
+      if (filters.genre && filters.genre !== 'All Genres') {
+        params.append('genre', filters.genre);
+      }
+      if (filters.searchQuery) {
+        params.append('search', filters.searchQuery);
+      }
+      
+      const url = `/api/games${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url);
       const result = await response.json();
       
       if (result.success) {
         setGames(result.data);
+        setCurrentFilters(filters);
       } else {
         setError('Failed to fetch games');
       }
@@ -33,6 +56,14 @@ export const useGames = (): UseGamesReturn => {
     }
   };
 
+  const fetchFilteredGames = (filters: {
+    platform: string;
+    genre: string;
+    searchQuery: string;
+  }) => {
+    fetchGames(filters);
+  };
+
   useEffect(() => {
     fetchGames();
   }, []);
@@ -41,6 +72,7 @@ export const useGames = (): UseGamesReturn => {
     games,
     loading,
     error,
-    refetch: fetchGames
+    refetch: () => fetchGames(),
+    fetchFilteredGames
   };
 };

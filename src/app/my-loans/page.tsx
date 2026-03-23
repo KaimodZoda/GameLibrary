@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export default function MyLoans() {
+  const router = useRouter();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
 
@@ -16,6 +18,10 @@ export default function MyLoans() {
   const handleCloseDetailsModal = () => {
     setShowDetailsModal(false);
     setSelectedLoan(null);
+  };
+
+  const handleReturnClick = (loan: any) => {
+    router.push(`/return?loanId=${loan.id}`);
   };
   // TODO: Replace with actual user loans data
   const loans = [
@@ -204,12 +210,12 @@ export default function MyLoans() {
                         <div className="flex items-center justify-center">
                           <div>
                             {loan.status === 'active' && (
-                              <button className={actionButtonClass}>
+                              <button className={actionButtonClass} onClick={() => handleReturnClick(loan)}>
                                 Return
                               </button>
                             )}
                             {loan.status === 'overdue' && (
-                              <button className={dangerButtonClass}>
+                              <button className={dangerButtonClass} onClick={() => handleReturnClick(loan)}>
                                 Return Now
                               </button>
                             )}

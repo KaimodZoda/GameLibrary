@@ -1,57 +1,64 @@
-import GameCard from './GameCard';
+'use client';
 
-interface Game {
-  id: number;
-  title: string;
-  platform: string;
-  genre: string;
-  available: boolean;
-  gradient: string;
-}
+import GameCard from './GameCard';
+import SearchFilter from './SearchFilter';
+import { Game } from '@/types/game';
+import { useGames } from '@/hooks/useGames';
+import { useGameFilters } from '@/hooks/useGameFilters';
+import Button from '@/components/ui/Button';
 
 interface GameGridProps {
   onBorrowClick: (game: Game) => void;
 }
 
 const GameGrid = ({ onBorrowClick }: GameGridProps) => {
-  const games: Game[] = [
-    {
-      id: 1,
-      title: 'The Legend of Zelda',
-      platform: 'Nintendo Switch',
-      genre: 'Action-Adventure',
-      available: true,
-      gradient: 'from-indigo-400 to-purple-500'
-    },
-    {
-      id: 2,
-      title: 'Elden Ring',
-      platform: 'PlayStation 5',
-      genre: 'RPG',
-      available: false,
-      gradient: 'from-green-400 to-blue-500'
-    },
-    {
-      id: 3,
-      title: 'FIFA 24',
-      platform: 'Xbox Series X',
-      genre: 'Sports',
-      available: true,
-      gradient: 'from-red-400 to-orange-500'
-    },
-    {
-      id: 4,
-      title: 'Stardew Valley',
-      platform: 'PC',
-      genre: 'Simulation',
-      available: true,
-      gradient: 'from-purple-400 to-pink-500'
-    }
-  ];
+  const { games, loading, error, refetch, fetchFilteredGames } = useGames();
+  const { platform, setPlatform, genre, setGenre, searchQuery, setSearchQuery, applyFilters, getCurrentFilters } = useGameFilters();
+
+  const handleApplyFilters = () => {
+    const filters = getCurrentFilters();
+    fetchFilteredGames(filters);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-center">
+          <i className="fas fa-spinner fa-spin text-4xl text-indigo-600 mb-4"></i>
+          <p className="text-gray-600">Loading games...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-center">
+          <i className="fas fa-exclamation-triangle text-4xl text-red-600 mb-4"></i>
+          <p className="text-gray-600">{error}</p>
+          <Button 
+            onClick={refetch}
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <SearchFilter 
+        platform={platform} 
+        setPlatform={setPlatform} 
+        genre={genre}
+        setGenre={setGenre}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        applyFilters={handleApplyFilters}
+      />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
         {games.map(game => (
           <GameCard 
             key={game.id} 
