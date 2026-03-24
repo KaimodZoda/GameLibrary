@@ -21,7 +21,7 @@ export default function Login() {
     }
   }, [searchParams]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
@@ -54,7 +54,7 @@ export default function Login() {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link href="/auth/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link href="./signup" className="font-medium text-indigo-600 hover:text-indigo-500">
               create a new account
             </Link>
           </p>

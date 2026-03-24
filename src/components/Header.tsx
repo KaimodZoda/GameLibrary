@@ -10,26 +10,26 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center">
+            <Link href="/pages/home" className="flex items-center">
               <i className="fas fa-gamepad text-indigo-600 text-2xl mr-3"></i>
               <h1 className="text-xl font-bold text-gray-900">Game Library</h1>
             </Link>
           </div>
           <div className="flex items-center space-x-4">
-            <Link href="/" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
+            <Link href="/pages/home" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
               <i className="fas fa-search mr-1"></i> Search
             </Link>
             {status === 'authenticated' ? (
               <>
                 <Link 
-                  href="/my-loans"
+                  href="/pages/my-loans"
                   className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
                 >
                   <i className="fas fa-book mr-1"></i> My Loans
                 </Link>
                 {session?.user?.role === 'ADMIN' && (
                   <Link 
-                    href="/admin"
+                    href="/pages/admin"
                     className="text-gray-600 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
                     <i className="fas fa-cog mr-1"></i> Admin
@@ -55,7 +55,7 @@ const Header = () => {
               </>
             ) : (
               <Link 
-                href="/auth/signin"
+                href="/pages/auth/signin"
                 className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
               >
                 <i className="fas fa-user mr-1"></i> Sign in

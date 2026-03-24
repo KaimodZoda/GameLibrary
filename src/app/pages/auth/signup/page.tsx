@@ -13,7 +13,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -40,7 +40,7 @@ export default function SignUp() {
       const data = await response.json();
 
       if (data.success) {
-        router.push('/auth/signin?message=Registration successful');
+        router.push('./signin?message=Registration successful');
       } else {
         setError(data.message || 'Registration failed');
       }
@@ -60,7 +60,7 @@ export default function SignUp() {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link href="/auth/signin" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link href="./signin" className="font-medium text-indigo-600 hover:text-indigo-500">
               sign in to existing account
             </Link>
           </p>

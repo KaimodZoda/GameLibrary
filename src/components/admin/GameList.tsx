@@ -225,7 +225,7 @@ const EditGameModal = ({ game, onSave, onCancel }: {
   const genres = ['Action', 'Adventure', 'RPG', 'Strategy', 'Sports', 'Racing', 'Simulation', 'Puzzle', 'Fighting', 'Platformer', 'Shooter', 'Action-Adventure'];
   const gradients = ['from-blue-400 to-purple-500', 'from-green-400 to-blue-500', 'from-red-400 to-orange-500', 'from-purple-400 to-pink-500'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     onSave(formData);

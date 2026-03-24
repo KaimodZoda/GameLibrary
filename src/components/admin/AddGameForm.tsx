@@ -62,7 +62,7 @@ const AddGameForm = ({ onSuccess }: AddGameFormProps) => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');

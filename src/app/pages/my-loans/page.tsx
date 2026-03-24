@@ -21,7 +21,7 @@ export default function MyLoans() {
   };
 
   const handleReturnClick = (loan: any) => {
-    router.push(`/return?loanId=${loan.id}`);
+    router.push(`./return?loanId=${loan.id}`);
   };
   // TODO: Replace with actual user loans data
   const loans = [
