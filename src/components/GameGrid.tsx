@@ -5,7 +5,7 @@ import SearchFilter from './SearchFilter';
 import { Game } from '@/types/game';
 import { useGames } from '@/hooks/useGames';
 import { useGameFilters } from '@/hooks/useGameFilters';
-import Button from '@/components/ui/Button';
+import Button from './ui/Button';
 
 interface GameGridProps {
   onBorrowClick: (game: Game) => void;

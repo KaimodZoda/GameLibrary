@@ -1,20 +1,22 @@
 import { Game } from '@/types/game';
+import { memo } from 'react';
 
 interface GameCardProps {
   game: Game;
   onBorrowClick: (game: Game) => void;
 }
 
-const GameCard = ({ game, onBorrowClick }: GameCardProps) => {
-  const getPlatformIcon = (platform: string) => {
-    switch (platform) {
-      case 'PC':
-        return 'fas fa-desktop';
-      default:
-        return 'fas fa-tv';
-    }
-  };
+// Memoize expensive platform icon lookup
+const getPlatformIcon = (platform: string) => {
+  switch (platform) {
+    case 'PC':
+      return 'fas fa-desktop';
+    default:
+      return 'fas fa-tv';
+  }
+};
 
+const GameCard = memo(({ game, onBorrowClick }: GameCardProps) => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow fade-in">
       <div className={`h-48 bg-gradient-to-br ${game.gradient} flex items-center justify-center`}>
@@ -50,6 +52,8 @@ const GameCard = ({ game, onBorrowClick }: GameCardProps) => {
       </div>
     </div>
   );
-};
+});
+
+GameCard.displayName = 'GameCard';
 
 export default GameCard;
