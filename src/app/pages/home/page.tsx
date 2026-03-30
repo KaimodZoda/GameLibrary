@@ -43,6 +43,7 @@ const ModalContent = ({
       <Input 
         type="date"
         label="Due Date"
+        required
       />
     </div>
     <div className="flex justify-end space-x-3">

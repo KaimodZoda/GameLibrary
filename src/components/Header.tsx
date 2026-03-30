@@ -17,7 +17,7 @@ const Header = () => {
           </div>
           <div className="flex items-center space-x-4">
             <Link href="/pages/home" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
-              <i className="fas fa-search mr-1"></i> Search
+              <i className="fas fa-search mr-1" aria-hidden="true"></i> Search
             </Link>
             {status === 'authenticated' ? (
               <>
@@ -25,19 +25,19 @@ const Header = () => {
                   href="/pages/my-loans"
                   className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  <i className="fas fa-book mr-1"></i> My Loans
+                  <i className="fas fa-book mr-1" aria-hidden="true"></i> My Loans
                 </Link>
                 {session?.user?.role === 'ADMIN' && (
                   <Link 
                     href="/pages/admin"
                     className="text-gray-600 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    <i className="fas fa-cog mr-1"></i> Admin
+                    <i className="fas fa-cog mr-1" aria-hidden="true"></i> Admin
                   </Link>
                 )}
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center">
-                    <i className="fas fa-user-circle text-gray-600 text-xl mr-2"></i>
+                    <i className="fas fa-user-circle text-gray-600 text-xl mr-2" aria-hidden="true"></i>
                     <span className="text-gray-700 font-medium">{session?.user?.name}</span>
                     {session?.user?.role === 'ADMIN' && (
                       <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
@@ -49,7 +49,7 @@ const Header = () => {
                     onClick={() => signOut()}
                     className="text-gray-600 hover:text-red-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    <i className="fas fa-sign-out-alt mr-1"></i> Sign out
+                    <i className="fas fa-sign-out-alt mr-1" aria-hidden="true"></i> Sign out
                   </button>
                 </div>
               </>
@@ -58,7 +58,7 @@ const Header = () => {
                 href="/pages/auth/signin"
                 className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
               >
-                <i className="fas fa-user mr-1"></i> Sign in
+                <i className="fas fa-user mr-1" aria-hidden="true"></i> Sign in
               </Link>
             )}
           </div>

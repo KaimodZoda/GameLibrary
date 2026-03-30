@@ -7,6 +7,18 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
+    const userId = parseInt(resolvedParams.id);
+    const body = await request.json();
+    const { role } = body;
+
+    if (!role || !['USER', 'ADMIN'].includes(role)) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid role' },
+        { status: 400 }
+      );
+    }
+
     // Get the session
     const session = await getServerSession();
     
@@ -28,18 +40,6 @@ export async function PUT(
       return NextResponse.json(
         { success: false, message: 'Admin access required' },
         { status: 403 }
-      );
-    }
-
-    const resolvedParams = await params;
-    const userId = parseInt(resolvedParams.id);
-    const body = await request.json();
-    const { role } = body;
-
-    if (!role || !['USER', 'ADMIN'].includes(role)) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid role' },
-        { status: 400 }
       );
     }
 
@@ -87,6 +87,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
+    const userId = parseInt(resolvedParams.id);
+
     // Get the session
     const session = await getServerSession();
     
@@ -110,9 +113,6 @@ export async function DELETE(
         { status: 403 }
       );
     }
-
-    const resolvedParams = await params;
-    const userId = parseInt(resolvedParams.id);
 
     // Check if user exists
     const user = await (prisma as any).user.findUnique({

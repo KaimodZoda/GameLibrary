@@ -17,7 +17,7 @@ const Button = ({
   disabled = false,
   className = ''
 }: ButtonProps) => {
-  const baseClasses = 'font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseClasses = 'font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus-visible:ring-2 focus-visible:ring-offset-2';
   
   const variantClasses = {
     primary: 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500',

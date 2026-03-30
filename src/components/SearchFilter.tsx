@@ -40,7 +40,7 @@ const SearchFilter = ({ platform, setPlatform, genre, setGenre, searchQuery, set
                 onChange={setSearchQuery}
                 className="pl-10"
               />
-              <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+              <i className="fas fa-search absolute left-3 top-3 text-gray-400" aria-hidden="true"></i>
             </div>
           </div>
           <select 

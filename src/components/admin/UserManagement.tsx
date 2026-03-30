@@ -54,7 +54,7 @@ const UserManagement = () => {
       const result = await response.json();
       
       if (result.success) {
-        setUsers(users.map(user => 
+        setUsers(prevUsers => prevUsers.map(user => 
           user.id === userId ? { ...user, role: newRole } : user
         ));
         setEditingUser(null);
@@ -75,7 +75,7 @@ const UserManagement = () => {
       const result = await response.json();
       
       if (result.success) {
-        setUsers(users.filter(user => user.id !== userId));
+        setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
         setDeleteConfirm(null);
       } else {
         setError(result.message || 'Failed to delete user');

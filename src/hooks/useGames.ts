@@ -30,34 +30,21 @@ export const useGames = (): UseGamesReturn => {
       
       const params = new URLSearchParams();
       
-      // Parallel URL parameter building
-      const paramTasks = [];
+      // Build URL parameters efficiently
       if (filters.platform && filters.platform !== 'All Platforms') {
-        paramTasks.push(
-          Promise.resolve().then(() => params.append('platform', filters.platform))
-        );
+        params.append('platform', filters.platform);
       }
       if (filters.genre && filters.genre !== 'All Genres') {
-        paramTasks.push(
-          Promise.resolve().then(() => params.append('genre', filters.genre))
-        );
+        params.append('genre', filters.genre);
       }
       if (filters.searchQuery) {
-        paramTasks.push(
-          Promise.resolve().then(() => params.append('search', filters.searchQuery))
-        );
+        params.append('search', filters.searchQuery);
       }
-      
-      // Wait for all params to be added (parallel)
-      await Promise.all(paramTasks);
       
       const url = `/api/games${params.toString() ? `?${params.toString()}` : ''}`;
       
-      // Parallel fetch and parse
-      const [response, result] = await Promise.all([
-        fetch(url),
-        fetch(url).then(r => r.json())
-      ]);
+      const response = await fetch(url);
+      const result = await response.json();
       
       if (result.success) {
         setGames(result.data);

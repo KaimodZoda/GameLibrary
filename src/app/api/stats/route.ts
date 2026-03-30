@@ -3,8 +3,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const totalGames = await prisma.game.count();
-    const availableGames = await prisma.game.count({ where: { available: true } });
+    // Parallel fetch of game counts
+    const [totalGames, availableGames] = await Promise.all([
+      prisma.game.count(),
+      prisma.game.count({ where: { available: true } })
+    ]);
+    
     const borrowedGames = totalGames - availableGames;
 
     return NextResponse.json({
