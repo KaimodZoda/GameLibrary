@@ -1,6 +1,7 @@
 import { Game } from '@/types/game';
 import { memo, useState } from 'react';
 import { useLoans } from '@/hooks/useLoans';
+import { useSession } from 'next-auth/react';
 import BorrowConfirmationModal from '@/components/BorrowConfirmationModal';
 import { useGames } from '@/hooks/useGames';
 
@@ -21,12 +22,19 @@ const getPlatformIcon = (platform: string) => {
 };
 
 const GameCard = memo(({ game, onBorrowClick, onUpdate }: GameCardProps) => {
+  const { data: session } = useSession();
   const { borrowGame } = useLoans();
   const { refetch: refetchGames } = useGames();
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [isBorrowing, setIsBorrowing] = useState(false);
   
   const handleBorrow = () => {
+    if (!session?.user) {
+      // Redirect to sign in if not authenticated
+      window.location.href = '/pages/auth/signin';
+      return;
+    }
+    
     if (!onBorrowClick) return;
     
     // Show confirmation modal instead of immediate borrow
