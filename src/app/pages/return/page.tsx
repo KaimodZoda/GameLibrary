@@ -55,7 +55,7 @@ export default function ReturnPage() {
       
       if (result.success) {
         console.log('Game returned successfully!');
-        router.push('/my-loans?returnSuccess=true');
+        router.push('./my-loans?returnSuccess=true');
       } else {
         console.error('Failed to return game:', result.message);
       }

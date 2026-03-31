@@ -9,6 +9,7 @@ import { useLoans } from '@/hooks/useLoans';
 export default function MyLoans() {
   const router = useRouter();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showReturnConfirmModal, setShowReturnConfirmModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const { loans, loading, error, refetch, returnGame } = useLoans();
 
@@ -23,12 +24,19 @@ export default function MyLoans() {
   };
 
   const handleReturnClick = async (loan: any) => {
-    const result = await returnGame(loan.id);
-    if (result.success) {
-      console.log('Game returned successfully!');
-    } else {
-      console.error('Failed to return game:', result.message);
-    }
+    // Show confirmation modal instead of direct return
+    setSelectedLoan(loan);
+    setShowReturnConfirmModal(true);
+  };
+
+  const handleConfirmReturn = () => {
+    // Redirect to return page with loan ID
+    router.push(`./return?loanId=${selectedLoan.id}`);
+  };
+
+  const handleCancelReturn = () => {
+    setShowReturnConfirmModal(false);
+    setSelectedLoan(null);
   };
 
   // Calculate stats from real loan data
@@ -156,7 +164,7 @@ export default function MyLoans() {
                   {loans.map((loan) => (
                     <tr key={loan.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-flex-start ml-6">
                           <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">
                             <i className="fas fa-gamepad text-gray-500"></i>
                           </div>
@@ -285,6 +293,59 @@ export default function MyLoans() {
                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(selectedLoan.status)}`}>
                   {getStatusText(selectedLoan.status)}
                 </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Return Confirmation Modal */}
+      {showReturnConfirmModal && selectedLoan && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+          onClick={handleCancelReturn}
+        >
+          <div 
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Confirm Return</h3>
+              <button 
+                onClick={handleCancelReturn}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-2">{selectedLoan.game.title}</h4>
+                <p className="text-sm text-gray-600">{selectedLoan.game.platform}</p>
+                <p className="text-xs text-gray-500">{selectedLoan.game.genre}</p>
+              </div>
+              
+              <div className="bg-yellow-50 border border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <i className="fas fa-exclamation-triangle mr-2"></i>
+                  You will be redirected to the return page to complete this process
+                </p>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleCancelReturn}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmReturn}
+                  className="px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Go to Return Page
+                </button>
               </div>
             </div>
           </div>
