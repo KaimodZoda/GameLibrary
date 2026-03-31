@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import GameCard from './GameCard';
 import SearchFilter from './SearchFilter';
 import { Game } from '@/types/game';
@@ -11,9 +12,21 @@ interface GameGridProps {
   onBorrowClick: (game: Game) => void;
 }
 
+interface GameCardState {
+  [key: number]: Game;
+}
+
 const GameGrid = ({ onBorrowClick }: GameGridProps) => {
   const { games, loading, error, refetch, fetchFilteredGames } = useGames();
   const { platform, setPlatform, genre, setGenre, searchQuery, setSearchQuery, applyFilters, getCurrentFilters } = useGameFilters();
+  const [gameStates, setGameStates] = useState<GameCardState>({});
+
+  const handleGameUpdate = (updatedGame: Game) => {
+    setGameStates(prev => ({
+      ...prev,
+      [updatedGame.id]: updatedGame
+    }));
+  };
 
   const handleApplyFilters = () => {
     const filters = getCurrentFilters();
@@ -62,8 +75,9 @@ const GameGrid = ({ onBorrowClick }: GameGridProps) => {
         {games.map(game => (
           <GameCard 
             key={game.id} 
-            game={game} 
+            game={gameStates[game.id] || game} 
             onBorrowClick={onBorrowClick}
+            onUpdate={handleGameUpdate}
           />
         ))}
       </div>
