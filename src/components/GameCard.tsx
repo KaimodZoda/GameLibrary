@@ -23,7 +23,10 @@ const GameCard = memo(({ game, onBorrowClick }: GameCardProps) => {
   const handleBorrow = async () => {
     if (!onBorrowClick) return;
     
-    const result = await borrowGame(game.id);
+    // Calculate default due date (14 days from now)
+    const defaultDueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    const result = await borrowGame(game.id, defaultDueDate);
     if (result.success) {
       // Show success message or handle in parent
       console.log('Game borrowed successfully:', result.message);

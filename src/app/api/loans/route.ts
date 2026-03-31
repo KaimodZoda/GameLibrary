@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
+import { getToken } from 'next-auth/jwt';
+import { NextRequest } from 'next/server';
 
 // GET /api/loans - Get current user's loans
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    // Get token from Authorization header or cookie
+    const token = await getToken({ req: request });
     
-    if (!session?.user?.id) {
+    if (!token) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const userId = parseInt(session.user.id);
+    const userId = parseInt(token.sub!);
     const loans = await prisma.loan.findMany({
       where: { userId },
       include: {
@@ -61,18 +63,19 @@ export async function GET() {
 }
 
 // POST /api/loans - Create a new loan (borrow a game)
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    // Get token from Authorization header or cookie
+    const token = await getToken({ req: request });
     
-    if (!session?.user?.id) {
+    if (!token) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const userId = parseInt(session.user.id);
+    const userId = parseInt(token.sub!);
     const { gameId, dueDate } = await request.json();
 
     if (!gameId || !dueDate) {

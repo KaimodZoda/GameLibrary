@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 
 interface Loan {
   id: number;
@@ -64,6 +65,16 @@ export const useLoans = (): UseLoansReturn => {
   };
 
   const borrowGame = async (gameId: number, dueDate?: string) => {
+    // Check if user is authenticated
+    if (!session?.user) {
+      // Redirect to sign in
+      signIn();
+      return {
+        success: false,
+        message: 'Please sign in to borrow games'
+      };
+    }
+
     try {
       const response = await fetch('/api/loans', {
         method: 'POST',

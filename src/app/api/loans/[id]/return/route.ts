@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
+import { getToken } from 'next-auth/jwt';
+import { NextRequest } from 'next/server';
 
 // PUT /api/loans/[id]/return - Return a borrowed game
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession();
+    // Get token from Authorization header or cookie
+    const token = await getToken({ req: request });
     
-    if (!session?.user?.id) {
+    if (!token) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
         { status: 401 }
@@ -19,7 +21,7 @@ export async function PUT(
 
     const resolvedParams = await params;
     const loanId = parseInt(resolvedParams.id);
-    const userId = parseInt(session.user.id);
+    const userId = parseInt(token.sub!);
 
     // Get the loan
     const loan = await prisma.loan.findUnique({
