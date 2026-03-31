@@ -9,6 +9,7 @@ import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 
 // Hoist modal backdrop JSX
 const ModalBackdrop = ({ onClose, children }: { onClose: () => void; children: React.ReactNode }) => (
@@ -63,23 +64,58 @@ const ModalContent = ({
 );
 
 export default function Home() {
+  const { data: session } = useSession();
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [selectedGame, setSelectedGame] = useState<any>(null);
 
   const handleBorrowClick = useCallback((game: any) => {
+    if (!session?.user) {
+      // Redirect to sign in if not authenticated
+      window.location.href = '/pages/auth/signin';
+      return;
+    }
+    
     setSelectedGame(game);
     setShowBorrowModal(true);
-  }, []);
+  }, [session]);
 
   const handleCloseModal = useCallback(() => {
     setShowBorrowModal(false);
     setSelectedGame(null);
   }, []);
 
-  const handleConfirmBorrow = useCallback(() => {
-    console.log(`Borrowing ${selectedGame?.title}`);
-    handleCloseModal();
-  }, [selectedGame, handleCloseModal]);
+  const handleConfirmBorrow = useCallback(async () => {
+    if (!selectedGame || !session?.user) return;
+    
+    try {
+      const response = await fetch('/api/loans', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          gameId: selectedGame.id,
+          // Optional: allow user to specify due date
+          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Show success message
+        console.log('Game borrowed successfully!');
+        // Update the game grid to reflect availability change
+        window.location.reload();
+      } else {
+        console.error('Failed to borrow game:', result.message);
+      }
+    } catch (error) {
+      console.error('Error borrowing game:', error);
+    } finally {
+      handleCloseModal();
+    }
+  }, [selectedGame, session]);
 
   return (
     <>

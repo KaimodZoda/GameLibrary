@@ -1,9 +1,10 @@
 import { Game } from '@/types/game';
 import { memo } from 'react';
+import { useLoans } from '@/hooks/useLoans';
 
 interface GameCardProps {
   game: Game;
-  onBorrowClick: (game: Game) => void;
+  onBorrowClick?: (game: Game) => void;
 }
 
 // Memoize expensive platform icon lookup
@@ -17,6 +18,20 @@ const getPlatformIcon = (platform: string) => {
 };
 
 const GameCard = memo(({ game, onBorrowClick }: GameCardProps) => {
+  const { borrowGame } = useLoans();
+  
+  const handleBorrow = async () => {
+    if (!onBorrowClick) return;
+    
+    const result = await borrowGame(game.id);
+    if (result.success) {
+      // Show success message or handle in parent
+      console.log('Game borrowed successfully:', result.message);
+    } else {
+      // Show error message
+      console.error('Failed to borrow game:', result.message);
+    }
+  };
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow fade-in">
       <div className={`h-48 bg-gradient-to-br ${game.gradient} flex items-center justify-center`}>
@@ -44,7 +59,7 @@ const GameCard = memo(({ game, onBorrowClick }: GameCardProps) => {
                 : 'bg-gray-400 text-white cursor-not-allowed'
             }`}
             disabled={!game.available}
-            onClick={() => game.available && onBorrowClick(game)}
+            onClick={handleBorrow}
           >
             {game.available ? 'Borrow' : 'Unavailable'}
           </button>

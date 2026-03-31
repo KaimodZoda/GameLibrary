@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { useLoans } from '@/hooks/useLoans';
 
 export default function ReturnPage() {
   const router = useRouter();
@@ -15,38 +16,21 @@ export default function ReturnPage() {
   const [expectedReturnDate, setExpectedReturnDate] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { loans } = useLoans();
 
-  // Auto-select loan if ID is provided in URL
+  // Auto-select loan if ID is provided
   useEffect(() => {
     if (loanId) {
-      const loan = activeLoans.find(l => l.id === parseInt(loanId));
+      const loan = loans.find(l => l.id === parseInt(loanId));
       if (loan) {
         setSelectedLoan(loan);
+        // Pre-fill return method if available
+        if (!loan.returnedAt) {
+          setReturnMethod('in-person');
+        }
       }
     }
-  }, [loanId]);
-
-  // Mock loan data - in real app, this would come from API/props
-  const activeLoans = [
-    {
-      id: 1,
-      gameTitle: 'The Legend of Zelda',
-      platform: 'Nintendo Switch',
-      borrowDate: '2024-02-15',
-      dueDate: '2024-02-29',
-      status: 'active',
-      coverImage: '/placeholder-game.jpg'
-    },
-    {
-      id: 2,
-      gameTitle: 'Elden Ring',
-      platform: 'PlayStation 5',
-      borrowDate: '2024-02-10',
-      dueDate: '2024-02-24',
-      status: 'overdue',
-      coverImage: '/placeholder-game.jpg'
-    }
-  ];
+  }, [loanId, loans]);
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -54,20 +38,32 @@ export default function ReturnPage() {
 
     setIsSubmitting(true);
     
-    // TODO: Implement actual return API call
-    console.log('Return submission:', {
-      loanId: selectedLoan.id,
-      returnMethod,
-      trackingNumber,
-      expectedReturnDate,
-      notes
-    });
-
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch(`/api/loans/${selectedLoan.id}/return`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          returnMethod,
+          trackingNumber,
+          notes
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('Game returned successfully!');
+        router.push('/my-loans?returnSuccess=true');
+      } else {
+        console.error('Failed to return game:', result.message);
+      }
+    } catch (error) {
+      console.error('Error returning game:', error);
+    } finally {
       setIsSubmitting(false);
-      router.push('/my-loans?returnSuccess=true');
-    }, 1500);
+    }
   };
 
   return (
@@ -86,7 +82,7 @@ export default function ReturnPage() {
               <div className="bg-white rounded-lg shadow p-8">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Select Loan</h2>
                 <div className="space-y-4">
-                  {activeLoans.map((loan) => (
+                  {loans.filter(loan => !loan.returnedAt).map((loan) => (
                     <div
                       key={loan.id}
                       className={`p-4 border rounded-lg cursor-pointer transition-colors ${
@@ -101,23 +97,23 @@ export default function ReturnPage() {
                           <i className="fas fa-gamepad text-gray-500 text-sm"></i>
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">{loan.gameTitle}</p>
-                          <p className="text-xs text-gray-500">{loan.platform}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{loan.game.title}</p>
+                          <p className="text-xs text-gray-500">{loan.game.platform}</p>
                         </div>
                         <div className="flex-shrink-0">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            loan.status === 'active' 
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                            !loan.returnedAt && new Date(loan.dueDate) < new Date() 
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-green-100 text-green-800'
                           }`}>
-                            {loan.status === 'active' ? 'Active' : 'Overdue'}
+                            {!loan.returnedAt && new Date(loan.dueDate) < new Date() ? 'Overdue' : 'Active'}
                           </span>
                         </div>
                       </div>
                     </div>
                   ))}
                   
-                  {activeLoans.length === 0 && (
+                  {loans.filter(loan => !loan.returnedAt).length === 0 && (
                     <div className="text-center py-8">
                       <i className="fas fa-box-open text-gray-400 text-4xl mb-4"></i>
                       <p className="text-gray-600">No active loans to return</p>
@@ -142,10 +138,10 @@ export default function ReturnPage() {
                           <i className="fas fa-gamepad text-gray-500"></i>
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{selectedLoan.gameTitle}</p>
-                          <p className="text-sm text-gray-600">{selectedLoan.platform}</p>
+                          <p className="font-medium text-gray-900">{selectedLoan.game.title}</p>
+                          <p className="text-sm text-gray-600">{selectedLoan.game.platform}</p>
                           <p className="text-xs text-gray-500">
-                            Borrowed: {selectedLoan.borrowDate} | Due: {selectedLoan.dueDate}
+                            Borrowed: {new Date(selectedLoan.dateBorrowed).toLocaleDateString()} | Due: {new Date(selectedLoan.dueDate).toLocaleDateString()}
                           </p>
                         </div>
                       </div>

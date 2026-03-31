@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { useLoans } from '@/hooks/useLoans';
 
 export default function MyLoans() {
   const router = useRouter();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
+  const { loans, loading, error, refetch, returnGame } = useLoans();
 
   const handleDetailsClick = (loan: any) => {
     setSelectedLoan(loan);
@@ -20,48 +22,21 @@ export default function MyLoans() {
     setSelectedLoan(null);
   };
 
-  const handleReturnClick = (loan: any) => {
-    router.push(`./return?loanId=${loan.id}`);
-  };
-  // TODO: Replace with actual user loans data
-  const loans = [
-    {
-      id: 1,
-      gameTitle: 'The Legend of Zelda',
-      platform: 'Nintendo Switch',
-      borrowDate: '2024-02-15',
-      dueDate: '2024-02-29',
-      status: 'active', // active, returned, overdue
-      coverImage: '/placeholder-game.jpg',
-      approvedBy: 'John Smith',
-      approvedDate: '2024-02-15',
-      returnedDate: null
-    },
-    {
-      id: 2,
-      gameTitle: 'Elden Ring',
-      platform: 'PlayStation 5',
-      borrowDate: '2024-02-10',
-      dueDate: '2024-02-24',
-      status: 'overdue',
-      coverImage: '/placeholder-game.jpg',
-      approvedBy: 'Sarah Johnson',
-      approvedDate: '2024-02-10',
-      returnedDate: null
-    },
-    {
-      id: 3,
-      gameTitle: 'FIFA 24',
-      platform: 'Xbox Series X',
-      borrowDate: '2024-02-01',
-      dueDate: '2024-02-15',
-      status: 'returned',
-      coverImage: '/placeholder-game.jpg',
-      approvedBy: 'Mike Wilson',
-      approvedDate: '2024-02-01',
-      returnedDate: '2024-02-14'
+  const handleReturnClick = async (loan: any) => {
+    const result = await returnGame(loan.id);
+    if (result.success) {
+      console.log('Game returned successfully!');
+    } else {
+      console.error('Failed to return game:', result.message);
     }
-  ];
+  };
+
+  // Calculate stats from real loan data
+  const activeLoans = loans.filter(loan => !loan.returnedAt);
+  const overdueLoans = loans.filter(loan => {
+    return loan.returnedAt || new Date(loan.dueDate) < new Date()
+  });
+  const returnedLoans = loans.filter(loan => loan.returnedAt);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -120,7 +95,7 @@ export default function MyLoans() {
                 </div>
                 <div className="ml-4">
                   <p className={statsTextClass}>Active Loans</p>
-                  <p className={statsNumberClass}>1</p>
+                  <p className={statsNumberClass}>{activeLoans.length}</p>
                 </div>
               </div>
             </div>
@@ -131,7 +106,7 @@ export default function MyLoans() {
                 </div>
                 <div className="ml-4">
                   <p className={statsTextClass}>Overdue</p>
-                  <p className={statsNumberClass}>1</p>
+                  <p className={statsNumberClass}>{overdueLoans.length}</p>
                 </div>
               </div>
             </div>
@@ -142,7 +117,7 @@ export default function MyLoans() {
                 </div>
                 <div className="ml-4">
                   <p className={statsTextClass}>Returned</p>
-                  <p className={statsNumberClass}>1</p>
+                  <p className={statsNumberClass}>{returnedLoans.length}</p>
                 </div>
               </div>
             </div>
@@ -186,43 +161,45 @@ export default function MyLoans() {
                             <i className="fas fa-gamepad text-gray-500"></i>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{loan.gameTitle}</div>
+                            <div className="text-sm font-medium text-gray-900">{loan.game.title}</div>
+                            <div className="text-xs text-gray-500">{loan.game.platform}</div>
                           </div>
                         </div>
                       </td>
                       <td className={tableCellClass}>
-                        {loan.platform}
+                        {loan.game.platform}
                       </td>
                       <td className={tableCellClass}>
-                        {loan.borrowDate}
+                        {new Date(loan.dateBorrowed).toLocaleDateString()}
                       </td>
                       <td className={tableCellClass}>
-                        {loan.dueDate}
+                        {new Date(loan.dueDate).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex justify-center">
-                          <span className={`${statusBadgeClass} ${getStatusColor(loan.status)}`}>
-                            {getStatusText(loan.status)}
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(!loan.returnedAt && new Date(loan.dueDate) < new Date() ? 'overdue' : 'active')}`}>
+                            {getStatusText(!loan.returnedAt && new Date(loan.dueDate) < new Date() ? 'overdue' : 'active')}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center justify-center">
                           <div>
-                            {loan.status === 'active' && (
-                              <button className={actionButtonClass} onClick={() => handleReturnClick(loan)}>
-                                Return
-                              </button>
-                            )}
-                            {loan.status === 'overdue' && (
-                              <button className={dangerButtonClass} onClick={() => handleReturnClick(loan)}>
-                                Return Now
-                              </button>
+                            {loan.returnedAt ? (
+                              <span className="text-gray-400">Returned</span>
+                            ) : (
+                              <>
+                                {loan.game.platform && (
+                                  <button className={actionButtonClass} onClick={() => handleReturnClick(loan)}>
+                                    Return
+                                  </button>
+                                )}
+                                <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                  Details
+                                </button>
+                              </>
                             )}
                           </div>
-                          <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
-                            Details
-                          </button>
                         </div>
                       </td>
                     </tr>
