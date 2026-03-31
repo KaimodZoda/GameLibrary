@@ -106,7 +106,11 @@ export const useLoans = (): UseLoansReturn => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({ 
+          returnMethod: 'in-person', // Default return method
+          notes: 'Returned via My Loans page'
+        })
       });
 
       const result = await response.json();
