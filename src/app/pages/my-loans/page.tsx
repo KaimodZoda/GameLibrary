@@ -12,6 +12,58 @@ export default function MyLoans() {
   const [showReturnConfirmModal, setShowReturnConfirmModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const { loans, loading, error, refetch, returnGame } = useLoans();
+  const [returnRequests, setReturnRequests] = useState<any[]>([]);
+
+  // Fetch return requests when component mounts
+  useEffect(() => {
+    const fetchReturnRequests = async () => {
+      try {
+        const response = await fetch('/api/returns');
+        if (response.ok) {
+          const data = await response.json();
+          setReturnRequests(data);
+        }
+      } catch (error) {
+        console.error('Error fetching return requests:', error);
+      }
+    };
+    
+    fetchReturnRequests();
+  }, []);
+
+  // Get display status based on loan and return request
+  const getDisplayStatus = (loan: any) => {
+    const returnRequest = returnRequests.find(req => req.loanId === loan.id);
+    
+    if (loan.status === 'pending') return 'Borrow Pending';
+    if (loan.status === 'approved') return 'Borrow Approved';
+    if (loan.status === 'completed') {
+      if (!returnRequest) return 'Active';
+      if (returnRequest.status === 'pending') return 'Return Pending';
+      if (returnRequest.status === 'approved') return 'Returning';
+      if (returnRequest.status === 'completed') return 'Returned';
+    }
+    return 'Unknown';
+  };
+
+  const getStatusColor = (displayStatus: string) => {
+    switch (displayStatus) {
+      case 'Borrow Pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Borrow Approved':
+        return 'bg-blue-100 text-blue-800';
+      case 'Active':
+        return 'bg-green-100 text-green-800';
+      case 'Return Pending':
+        return 'bg-orange-100 text-orange-800';
+      case 'Returning':
+        return 'bg-purple-100 text-purple-800';
+      case 'Returned':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   const handleDetailsClick = (loan: any) => {
     setSelectedLoan(loan);
@@ -39,38 +91,22 @@ export default function MyLoans() {
     setSelectedLoan(null);
   };
 
-  // Calculate stats from real loan data
-  const activeLoans = loans.filter(loan => !loan.returnedAt);
-  const overdueLoans = loans.filter(loan => {
-    return loan.returnedAt || new Date(loan.dueDate) < new Date()
+  // Calculate stats based on new status logic
+  const activeLoans = loans.filter(loan => {
+    const status = getDisplayStatus(loan);
+    return status === 'Active' || status === 'Borrow Approved';
   });
-  const returnedLoans = loans.filter(loan => loan.returnedAt);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'overdue':
-        return 'bg-red-100 text-red-800';
-      case 'returned':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'Active';
-      case 'overdue':
-        return 'Overdue';
-      case 'returned':
-        return 'Returned';
-      default:
-        return 'Unknown';
-    }
-  };
+  
+  const overdueLoans = loans.filter(loan => {
+    const status = getDisplayStatus(loan);
+    const isOverdue = new Date(loan.dueDate) < new Date();
+    return (status === 'Active' || status === 'Borrow Approved') && isOverdue;
+  });
+  
+  const returnedLoans = loans.filter(loan => {
+    const status = getDisplayStatus(loan);
+    return status === 'Returned';
+  });
 
   // Reusable Tailwind classes
   const statsCardClass = "bg-white rounded-lg shadow p-6";
@@ -185,28 +221,35 @@ export default function MyLoans() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex justify-center">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(!loan.returnedAt && new Date(loan.dueDate) < new Date() ? 'overdue' : 'active')}`}>
-                            {getStatusText(!loan.returnedAt && new Date(loan.dueDate) < new Date() ? 'overdue' : 'active')}
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getDisplayStatus(loan))}`}>
+                            {getDisplayStatus(loan)}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center justify-center">
                           <div>
-                            {loan.returnedAt ? (
-                              <span className="text-gray-400">Returned</span>
-                            ) : (
-                              <>
-                                {loan.game.platform && (
-                                  <button className={actionButtonClass} onClick={() => handleReturnClick(loan)}>
-                                    Return
+                            {(() => {
+                              const status = getDisplayStatus(loan);
+                              if (status === 'Returned') {
+                                return <span className="text-gray-400">Returned</span>;
+                              }
+                              if (status === 'Return Pending' || status === 'Returning') {
+                                return <span className="text-gray-400">Return in Progress</span>;
+                              }
+                              return (
+                                <>
+                                  {loan.game.platform && (
+                                    <button className={actionButtonClass} onClick={() => handleReturnClick(loan)}>
+                                      Return
+                                    </button>
+                                  )}
+                                  <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                    Details
                                   </button>
-                                )}
-                                <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
-                                  Details
-                                </button>
-                              </>
-                            )}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       </td>
@@ -290,8 +333,8 @@ export default function MyLoans() {
               
               <div>
                 <p className="text-sm font-medium text-gray-500">Status</p>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(selectedLoan.status)}`}>
-                  {getStatusText(selectedLoan.status)}
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getDisplayStatus(selectedLoan))}`}>
+                  {getDisplayStatus(selectedLoan)}
                 </span>
               </div>
             </div>

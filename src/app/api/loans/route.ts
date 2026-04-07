@@ -39,11 +39,6 @@ export async function GET(request: NextRequest) {
           select: {
             name: true
           }
-        },
-        returnApprover: {
-          select: {
-            name: true
-          }
         }
       },
       orderBy: { dateBorrowed: 'desc' }
@@ -109,13 +104,37 @@ export async function POST(request: NextRequest) {
       where: {
         userId,
         gameId,
-        returnedAt: null
+        status: {
+          in: ['pending', 'approved', 'completed']
+        }
       }
     });
 
-    if (existingLoan) {
+    // Also check if there's a return in progress
+    const userLoans = await prisma.loan.findMany({
+      where: {
+        userId,
+        gameId
+      },
+      select: { id: true }
+    });
+    
+    const userLoanIds = userLoans.map(loan => loan.id);
+    
+    const activeReturn = await prisma.return.findFirst({
+      where: {
+        loanId: {
+          in: userLoanIds
+        },
+        status: {
+          in: ['pending', 'approved']
+        }
+      }
+    });
+
+    if (existingLoan || activeReturn) {
       return NextResponse.json(
-        { success: false, message: 'You already have an active loan for this game' },
+        { success: false, message: 'You already have an active loan or return in progress for this game' },
         { status: 400 }
       );
     }
