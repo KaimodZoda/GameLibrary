@@ -91,7 +91,7 @@ export default function ReturnPage() {
       <main className="flex-grow bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Return Game Old</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Return Game</h1>
             <p className="text-gray-600">Select a game to return and provide return details</p>
           </div>
 
