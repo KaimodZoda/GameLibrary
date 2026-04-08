@@ -19,7 +19,20 @@ export async function GET(request: NextRequest) {
     const userId = parseInt(token.sub!);
     const loans = await prisma.loan.findMany({
       where: { userId },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        gameId: true,
+        dateBorrowed: true,
+        dueDate: true,
+        approvedBy: true,
+        approvedAt: true,
+        completedBy: true,
+        completedAt: true,
+        pickupDate: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
         game: {
           select: {
             id: true,

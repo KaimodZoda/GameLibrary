@@ -237,17 +237,26 @@ export default function MyLoans() {
                               if (status === 'Return Pending' || status === 'Returning') {
                                 return <span className="text-gray-400">Return in Progress</span>;
                               }
-                              return (
-                                <>
-                                  {loan.game.platform && (
-                                    <button className={actionButtonClass} onClick={() => handleReturnClick(loan)}>
-                                      Return
+                              // Only show Return button for Active loans
+                              if (status === 'Active') {
+                                return (
+                                  <>
+                                    {loan.game.platform && (
+                                      <button className={actionButtonClass} onClick={() => handleReturnClick(loan)}>
+                                        Return
+                                      </button>
+                                    )}
+                                    <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                      Details
                                     </button>
-                                  )}
-                                  <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
-                                    Details
-                                  </button>
-                                </>
+                                  </>
+                                );
+                              }
+                              // For other statuses (Borrow Pending, Borrow Approved), show only Details
+                              return (
+                                <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                  Details
+                                </button>
                               );
                             })()}
                           </div>

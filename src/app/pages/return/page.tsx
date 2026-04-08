@@ -16,7 +16,25 @@ export default function ReturnPage() {
   const [expectedReturnDate, setExpectedReturnDate] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [returnRequests, setReturnRequests] = useState<any[]>([]);
   const { loans } = useLoans();
+
+  // Fetch return requests
+  useEffect(() => {
+    const fetchReturnRequests = async () => {
+      try {
+        const response = await fetch('/api/returns');
+        if (response.ok) {
+          const data = await response.json();
+          setReturnRequests(data);
+        }
+      } catch (error) {
+        console.error('Error fetching return requests:', error);
+      }
+    };
+    
+    fetchReturnRequests();
+  }, []);
 
   // Auto-select loan if ID is provided
   useEffect(() => {
@@ -39,16 +57,17 @@ export default function ReturnPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`/api/loans/${selectedLoan.id}/return`, {
-        method: 'PUT',
+      const response = await fetch(`/api/returns`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
+          loanId: selectedLoan.id,
           returnMethod,
           trackingNumber,
           notes
-        }),
+        })
       });
       
       const result = await response.json();
@@ -57,7 +76,7 @@ export default function ReturnPage() {
         console.log('Game returned successfully!');
         router.push('./my-loans?returnSuccess=true');
       } else {
-        console.error('Failed to return game:', result.message);
+        console.error('Failed to return game:', result.error || result.message);
       }
     } catch (error) {
       console.error('Error returning game:', error);
@@ -82,7 +101,13 @@ export default function ReturnPage() {
               <div className="bg-white rounded-lg shadow p-8">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Select Loan</h2>
                 <div className="space-y-4">
-                  {loans.filter(loan => !loan.returnedAt).map((loan) => (
+                  {loans.filter((loan: any) => {
+                    // Only show loans that are Active (completed status but no return request)
+                    const hasAnyReturn = returnRequests.some((req: any) => 
+                      req.loanId === loan.id
+                    );
+                    return loan.status === 'completed' && !hasAnyReturn;
+                  }).map((loan) => (
                     <div
                       key={loan.id}
                       className={`p-4 border rounded-lg cursor-pointer transition-colors ${
@@ -113,7 +138,13 @@ export default function ReturnPage() {
                     </div>
                   ))}
                   
-                  {loans.filter(loan => !loan.returnedAt).length === 0 && (
+                  {loans.filter(loan => {
+                    const hasActiveReturn = returnRequests.some((req: any) => 
+                      req.loanId === loan.id && 
+                      ['pending', 'approved', 'completed'].includes(req.status)
+                    );
+                    return !loan.returnedAt && !hasActiveReturn;
+                  }).length === 0 && (
                     <div className="text-center py-8">
                       <i className="fas fa-box-open text-gray-400 text-4xl mb-4"></i>
                       <p className="text-gray-600">No active loans to return</p>

@@ -104,7 +104,8 @@ const handler = NextAuth({
   },
   pages: {
     signIn: '/auth/signin',
-    error: '/auth/signin?error=true'
+    error: '/auth/signin?error=true',
+    signOut: '/'
   },
   debug: process.env.NODE_ENV === 'development'
 });
