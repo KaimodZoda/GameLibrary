@@ -24,8 +24,7 @@ export async function GET(request: Request) {
     // Filter by search query
     if (search) {
       where.title = {
-        contains: search,
-        mode: 'insensitive'
+        contains: search
       };
     }
 

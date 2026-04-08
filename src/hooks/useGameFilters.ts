@@ -8,6 +8,7 @@ interface UseGameFiltersReturn {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   applyFilters: () => void;
+  clearFilters: () => void;
   hasActiveFilters: boolean;
   getCurrentFilters: () => {
     platform: string;
@@ -34,6 +35,12 @@ export const useGameFilters = (): UseGameFiltersReturn => {
     // Keeping the function for compatibility
   };
 
+  const clearFilters = () => {
+    setPlatform('All Platforms');
+    setGenre('All Genres');
+    setSearchQuery('');
+  };
+
   return {
     platform,
     setPlatform,
@@ -42,6 +49,7 @@ export const useGameFilters = (): UseGameFiltersReturn => {
     searchQuery,
     setSearchQuery,
     applyFilters,
+    clearFilters,
     hasActiveFilters,
     getCurrentFilters
   };

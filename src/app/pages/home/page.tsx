@@ -5,11 +5,13 @@ import Footer from '@/components/Footer';
 import HeroSection from '@/components/HeroSection';
 import StatsSection from '@/components/StatsSection';
 import GameGrid from '@/components/GameGrid';
+import SearchFilter from '@/components/SearchFilter';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useGameFilters } from '@/hooks/useGameFilters';
 
 // Hoist modal backdrop JSX
 const ModalBackdrop = ({ onClose, children }: { onClose: () => void; children: React.ReactNode }) => (
@@ -67,6 +69,23 @@ export default function Home() {
   const { data: session } = useSession();
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [selectedGame, setSelectedGame] = useState<any>(null);
+  
+  // Manage filter state at the Home level
+  const { platform, setPlatform, genre, setGenre, searchQuery, setSearchQuery, applyFilters, clearFilters, getCurrentFilters } = useGameFilters();
+
+  // Apply filters using the window functions from GameGrid
+  const handleApplyFilters = (filters: { platform: string; genre: string; searchQuery: string }) => {
+    if (typeof window !== 'undefined' && (window as any).applyGameFilters) {
+      (window as any).applyGameFilters(filters);
+    }
+  };
+
+  const handleClearFilters = () => {
+    if (typeof window !== 'undefined' && (window as any).clearGameFilters) {
+      (window as any).clearGameFilters();
+    }
+    clearFilters();
+  };
 
   const handleBorrowClick = useCallback((game: any) => {
     if (!session?.user) {
@@ -124,7 +143,19 @@ export default function Home() {
         <HeroSection />
         <Container className="py-8">
           <StatsSection />
-          <GameGrid onBorrowClick={handleBorrowClick} />
+          <SearchFilter 
+            platform={platform}
+            setPlatform={setPlatform}
+            genre={genre}
+            setGenre={setGenre}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            applyFilters={handleApplyFilters}
+            clearFilters={handleClearFilters}
+          />
+          <GameGrid 
+            onBorrowClick={handleBorrowClick}
+          />
         </Container>
         {showBorrowModal && (
           <ModalBackdrop onClose={handleCloseModal}>

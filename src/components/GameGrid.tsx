@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import GameCard from './GameCard';
-import SearchFilter from './SearchFilter';
 import { Game } from '@/types/game';
 import { useGames } from '@/hooks/useGames';
-import { useGameFilters } from '@/hooks/useGameFilters';
 import Button from './ui/Button';
 
 interface GameGridProps {
@@ -17,9 +15,9 @@ interface GameCardState {
 }
 
 const GameGrid = ({ onBorrowClick }: GameGridProps) => {
-  const { games, loading, error, refetch, fetchFilteredGames } = useGames();
-  const { platform, setPlatform, genre, setGenre, searchQuery, setSearchQuery, applyFilters, getCurrentFilters } = useGameFilters();
+  const { games, loading, error, refetch, applyFilters: hookApplyFilters, filteringMode } = useGames();
   const [gameStates, setGameStates] = useState<GameCardState>({});
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const handleGameUpdate = (updatedGame: Game) => {
     setGameStates(prev => ({
@@ -28,10 +26,23 @@ const GameGrid = ({ onBorrowClick }: GameGridProps) => {
     }));
   };
 
-  const handleApplyFilters = () => {
-    const filters = getCurrentFilters();
-    fetchFilteredGames(filters);
-  };
+  // Expose applyFilters function to parent
+  useEffect(() => {
+    // This will be called by parent component
+    if (typeof window !== 'undefined') {
+      (window as any).applyGameFilters = hookApplyFilters;
+      (window as any).clearGameFilters = () => {
+        hookApplyFilters({ platform: 'All Platforms', genre: 'All Genres', searchQuery: '' });
+      };
+    }
+    
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).applyGameFilters;
+        delete (window as any).clearGameFilters;
+      }
+    };
+  }, [hookApplyFilters]);
 
   if (loading) {
     return (
@@ -62,16 +73,40 @@ const GameGrid = ({ onBorrowClick }: GameGridProps) => {
 
   return (
     <>
-      <SearchFilter 
-        platform={platform} 
-        setPlatform={setPlatform} 
-        genre={genre}
-        setGenre={setGenre}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        applyFilters={handleApplyFilters}
-      />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
+      {/* Filtering Mode Indicator */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-sm text-gray-600">
+          Showing {games.length} games
+          {isFiltering && (
+            <span className="ml-2 text-indigo-600">
+              <i className="fas fa-spinner fa-spin mr-1"></i>
+              Updating...
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500">Filtering:</span>
+          <span className={`text-xs px-2 py-1 rounded-full ${
+            filteringMode === 'client' 
+              ? 'bg-green-100 text-green-800' 
+              : 'bg-blue-100 text-blue-800'
+          }`}>
+            {filteringMode === 'client' ? 'Client-side' : 'Server-side'}
+          </span>
+        </div>
+      </div>
+      
+      {/* Partial Loading Overlay */}
+      {isFiltering && (
+        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-lg">
+          <div className="text-center">
+            <i className="fas fa-spinner fa-spin text-2xl text-indigo-600 mb-2"></i>
+            <p className="text-sm text-gray-600">Updating games...</p>
+          </div>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative">
         {games.map(game => (
           <GameCard 
             key={game.id} 
