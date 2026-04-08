@@ -232,10 +232,18 @@ export default function MyLoans() {
                             {(() => {
                               const status = getDisplayStatus(loan);
                               if (status === 'Returned') {
-                                return <span className="text-gray-400">Returned</span>;
+                                return (
+                                  <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                    Details
+                                  </button>
+                                );
                               }
                               if (status === 'Return Pending' || status === 'Returning') {
-                                return <span className="text-gray-400">Return in Progress</span>;
+                                return (
+                                  <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                    Details
+                                  </button>
+                                );
                               }
                               // Only show Return button for Active loans
                               if (status === 'Active') {
@@ -306,45 +314,134 @@ export default function MyLoans() {
             </div>
             
             <div className="space-y-4">
+              {/* Game Information */}
               <div className="border-b pb-4">
-                <h4 className="font-semibold text-gray-900 mb-2">{selectedLoan.gameTitle}</h4>
-                <p className="text-sm text-gray-600">{selectedLoan.platform}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Borrow Date</p>
-                  <p className="text-sm text-gray-900">{selectedLoan.borrowDate}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Due Date</p>
-                  <p className="text-sm text-gray-900">{selectedLoan.dueDate}</p>
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 h-16 w-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-gamepad text-gray-500 text-xl"></i>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 text-lg">{selectedLoan.game?.title}</h4>
+                    <p className="text-sm text-gray-600">{selectedLoan.game?.platform} • {selectedLoan.game?.genre}</p>
+                  </div>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Approved By</p>
-                  <p className="text-sm text-gray-900">{selectedLoan.approvedBy}</p>
+              {/* Loan Timeline */}
+              <div className="space-y-3">
+                <h5 className="font-medium text-gray-900 border-b pb-2">Loan Timeline</h5>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Request Date</p>
+                    <p className="text-sm text-gray-900">
+                      {selectedLoan.dateBorrowed ? new Date(selectedLoan.dateBorrowed).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Due Date</p>
+                    <p className="text-sm text-gray-900">
+                      {selectedLoan.dueDate ? new Date(selectedLoan.dueDate).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Approved Date</p>
-                  <p className="text-sm text-gray-900">{selectedLoan.approvedDate}</p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Approved By</p>
+                    <p className="text-sm text-gray-900">
+                      {selectedLoan.approver?.name || 'Not approved'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Approved Date</p>
+                    <p className="text-sm text-gray-900">
+                      {selectedLoan.approvedAt ? new Date(selectedLoan.approvedAt).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Pickup Date</p>
+                    <p className="text-sm text-gray-900">
+                      {selectedLoan.pickupDate ? new Date(selectedLoan.pickupDate).toLocaleDateString() : 'Not picked up'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Completed Date</p>
+                    <p className="text-sm text-gray-900">
+                      {selectedLoan.completedAt ? new Date(selectedLoan.completedAt).toLocaleDateString() : 'Not completed'}
+                    </p>
+                  </div>
                 </div>
               </div>
               
-              {selectedLoan.returnedDate && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Returned Date</p>
-                  <p className="text-sm text-gray-900">{selectedLoan.returnedDate}</p>
-                </div>
-              )}
+              {/* Return Information */}
+              {(() => {
+                const returnRequest = returnRequests.find(req => req.loanId === selectedLoan.id);
+                if (returnRequest) {
+                  return (
+                    <div className="space-y-3">
+                      <h5 className="font-medium text-gray-900 border-b pb-2">Return Information</h5>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Return Request Date</p>
+                          <p className="text-sm text-gray-900">
+                            {new Date(returnRequest.requestedReturnDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Return Method</p>
+                          <p className="text-sm text-gray-900">
+                            {returnRequest.returnMethod || 'Not specified'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {returnRequest.trackingNumber && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Tracking Number</p>
+                          <p className="text-sm text-gray-900">{returnRequest.trackingNumber}</p>
+                        </div>
+                      )}
+                      
+                      {returnRequest.returnNotes && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Return Notes</p>
+                          <p className="text-sm text-gray-900">{returnRequest.returnNotes}</p>
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Return Approved By</p>
+                          <p className="text-sm text-gray-900">
+                            {returnRequest.approvedBy ? 'Admin' : 'Not approved'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Return Completed Date</p>
+                          <p className="text-sm text-gray-900">
+                            {returnRequest.completedAt ? new Date(returnRequest.completedAt).toLocaleDateString() : 'Not completed'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               
-              <div>
-                <p className="text-sm font-medium text-gray-500">Status</p>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getDisplayStatus(selectedLoan))}`}>
-                  {getDisplayStatus(selectedLoan)}
-                </span>
+              {/* Current Status */}
+              <div className="pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-500">Current Status</p>
+                  <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getDisplayStatus(selectedLoan))}`}>
+                    {getDisplayStatus(selectedLoan)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
