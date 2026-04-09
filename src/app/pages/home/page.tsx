@@ -6,69 +6,17 @@ import HeroSection from '@/components/HeroSection';
 import StatsSection from '@/components/StatsSection';
 import GameGrid from '@/components/GameGrid';
 import SearchFilter from '@/components/SearchFilter';
+import BorrowConfirmationModal from '@/components/BorrowConfirmationModal';
 import Container from '@/components/ui/Container';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
 import { useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useGameFilters } from '@/hooks/useGameFilters';
-
-// Hoist modal backdrop JSX
-const ModalBackdrop = ({ onClose, children }: { onClose: () => void; children: React.ReactNode }) => (
-  <div 
-    className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
-    onClick={onClose}
-  >
-    {children}
-  </div>
-);
-
-// Hoist modal content JSX
-const ModalContent = ({ 
-  game, 
-  onClose, 
-  onConfirm 
-}: { 
-  game: any; 
-  onClose: () => void; 
-  onConfirm: () => void; 
-}) => (
-  <div 
-    className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative z-10"
-    onClick={(e) => e.stopPropagation()}
-  >
-    <h3 className="text-xl font-bold mb-4">Borrow Game</h3>
-    <div className="mb-4">
-      <p className="text-gray-600 mb-2">Game: <span className="font-semibold">{game?.title}</span></p>
-      <p className="text-gray-600 mb-2">Platform: <span className="font-semibold">{game?.platform}</span></p>
-    </div>
-    <div className="mb-4">
-      <Input 
-        type="date"
-        label="Due Date"
-        required
-      />
-    </div>
-    <div className="flex justify-end space-x-3">
-      <Button 
-        onClick={onClose}
-        variant="outline"
-      >
-        Cancel
-      </Button>
-      <Button 
-        onClick={onConfirm}
-      >
-        Confirm Borrow
-      </Button>
-    </div>
-  </div>
-);
 
 export default function Home() {
   const { data: session } = useSession();
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [selectedGame, setSelectedGame] = useState<any>(null);
+  const [isBorrowing, setIsBorrowing] = useState(false);
   
   // Manage filter state at the Home level
   const { platform, setPlatform, genre, setGenre, searchQuery, setSearchQuery, applyFilters, clearFilters, getCurrentFilters } = useGameFilters();
@@ -103,8 +51,10 @@ export default function Home() {
     setSelectedGame(null);
   }, []);
 
-  const handleConfirmBorrow = useCallback(async () => {
+  const handleConfirmBorrow = useCallback(async (dueDate: string) => {
     if (!selectedGame || !session?.user) return;
+    
+    setIsBorrowing(true);
     
     try {
       const response = await fetch('/api/loans', {
@@ -114,8 +64,7 @@ export default function Home() {
         },
         body: JSON.stringify({ 
           gameId: selectedGame.id,
-          // Optional: allow user to specify due date
-          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          dueDate: dueDate
         }),
       });
       
@@ -132,6 +81,7 @@ export default function Home() {
     } catch (error) {
       console.error('Error borrowing game:', error);
     } finally {
+      setIsBorrowing(false);
       handleCloseModal();
     }
   }, [selectedGame, session]);
@@ -157,15 +107,13 @@ export default function Home() {
             onBorrowClick={handleBorrowClick}
           />
         </Container>
-        {showBorrowModal && (
-          <ModalBackdrop onClose={handleCloseModal}>
-            <ModalContent 
-              game={selectedGame}
-              onClose={handleCloseModal}
-              onConfirm={handleConfirmBorrow}
-            />
-          </ModalBackdrop>
-        )}
+        <BorrowConfirmationModal
+          game={selectedGame}
+          isOpen={showBorrowModal}
+          onClose={handleCloseModal}
+          onConfirm={handleConfirmBorrow}
+          isBorrowing={isBorrowing}
+        />
       </main>
       <Footer />
     </>

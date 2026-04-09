@@ -55,6 +55,7 @@ model Loan {
   user             User          @relation(fields: [userId], references: [id])
   game             Game          @relation(fields: [gameId], references: [id])
   approver         User?         @relation("LoanApprover", fields: [approvedBy], references: [id])
+  adminActions     AdminAction[]
   @@unique([userId, gameId, dateBorrowed])
 }
 
@@ -79,16 +80,20 @@ model Return {
 }
 
 model AdminAction {
-  id         Int         @id @default(autoincrement())
-  requestId  Int
-  adminId    Int
-  action     String
-  actionDate DateTime    @default(now())
-  notes      String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id           Int      @id @default(autoincrement())
+  loanId       Int?
+  returnId     Int?
+  adminId      Int
+  action       String   // 'loan_approved', 'loan_rejected', 'return_approved', 'return_rejected'
+  actionDate   DateTime @default(now())
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   
   // Relations
-  request    Return      @relation(fields: [requestId], references: [id])
-  admin      User        @relation(fields: [adminId], references: [id])
+  loan         Loan?    @relation(fields: [loanId], references: [id])
+  return       Return?  @relation(fields: [returnId], references: [id])
+  admin        User     @relation(fields: [adminId], references: [id])
+  
+  @@map("admin_actions")
 }

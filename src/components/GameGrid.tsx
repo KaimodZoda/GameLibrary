@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import GameCard from './GameCard';
+import BorrowConfirmationModal from './BorrowConfirmationModal';
 import { Game } from '@/types/game';
 import { useGames } from '@/hooks/useGames';
+import { useLoans } from '@/hooks/useLoans';
+import { useSession } from 'next-auth/react';
 import Button from './ui/Button';
 
 interface GameGridProps {
-  onBorrowClick: (game: Game) => void;
+  onBorrowClick?: (game: Game) => void;
 }
 
 interface GameCardState {
@@ -16,14 +19,56 @@ interface GameCardState {
 
 const GameGrid = ({ onBorrowClick }: GameGridProps) => {
   const { games, loading, error, refetch, applyFilters: hookApplyFilters, filteringMode } = useGames();
+  const { borrowGame } = useLoans();
+  const { data: session } = useSession();
   const [gameStates, setGameStates] = useState<GameCardState>({});
   const [isFiltering, setIsFiltering] = useState(false);
+  const [showBorrowModal, setShowBorrowModal] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [isBorrowing, setIsBorrowing] = useState(false);
 
   const handleGameUpdate = (updatedGame: Game) => {
     setGameStates(prev => ({
       ...prev,
       [updatedGame.id]: updatedGame
     }));
+  };
+
+  const handleGameCardBorrow = (game: Game) => {
+    setSelectedGame(game);
+    setShowBorrowModal(true);
+  };
+
+  const handleConfirmBorrow = async (dueDate: string) => {
+    if (!selectedGame || !session?.user) return;
+    
+    setIsBorrowing(true);
+    
+    try {
+      const result = await borrowGame(selectedGame.id, dueDate);
+      if (result.success) {
+        console.log('Game borrowed successfully:', result.message);
+        setShowBorrowModal(false);
+        // Refetch games to update availability status
+        refetch();
+        // Update local state
+        setGameStates(prev => ({
+          ...prev,
+          [selectedGame.id]: { ...selectedGame, available: false }
+        }));
+      } else {
+        console.error('Failed to borrow game:', result.message);
+      }
+    } catch (error) {
+      console.error('Error borrowing game:', error);
+    } finally {
+      setIsBorrowing(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowBorrowModal(false);
+    setSelectedGame(null);
   };
 
   // Expose applyFilters function to parent
@@ -111,11 +156,21 @@ const GameGrid = ({ onBorrowClick }: GameGridProps) => {
           <GameCard 
             key={game.id} 
             game={gameStates[game.id] || game} 
-            onBorrowClick={onBorrowClick}
+            onBorrowClick={handleGameCardBorrow}
             onUpdate={handleGameUpdate}
           />
         ))}
       </div>
+
+      {selectedGame && (
+        <BorrowConfirmationModal
+          game={selectedGame}
+          isOpen={showBorrowModal}
+          onClose={handleCloseModal}
+          onConfirm={handleConfirmBorrow}
+          isBorrowing={isBorrowing}
+        />
+      )}
 
       {/* Pagination */}
       <div className="flex justify-center mt-8">

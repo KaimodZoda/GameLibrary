@@ -52,10 +52,10 @@ export async function PUT(
       }
     });
 
-    // Create admin action record
+    // Create admin action record for loan approval
     await prisma.adminAction.create({
       data: {
-        requestId: loanId,
+        loanId: loanId,
         adminId,
         action: 'loan_approved',
         notes: notes || 'Loan request approved'

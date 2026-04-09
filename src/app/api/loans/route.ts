@@ -84,9 +84,13 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = parseInt(token.sub!);
-    const { gameId, dueDate } = await request.json();
+    const body = await request.json();
+    console.log('Loan request body:', body); // Debug log
+    
+    const { gameId, dueDate } = body;
 
     if (!gameId || !dueDate) {
+      console.log('Missing required fields:', { gameId, dueDate }); // Debug log
       return NextResponse.json(
         { success: false, message: 'Game ID and due date are required' },
         { status: 400 }
@@ -98,6 +102,8 @@ export async function POST(request: NextRequest) {
       where: { id: parseInt(gameId) }
     });
 
+    console.log('Game found:', game); // Debug log
+
     if (!game) {
       return NextResponse.json(
         { success: false, message: 'Game not found' },
@@ -106,6 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!game.available) {
+      console.log('Game not available:', game.available); // Debug log
       return NextResponse.json(
         { success: false, message: 'Game is not available' },
         { status: 400 }
@@ -118,7 +125,7 @@ export async function POST(request: NextRequest) {
         userId,
         gameId,
         status: {
-          in: ['pending', 'approved', 'completed']
+          in: ['pending', 'approved']
         }
       }
     });
@@ -144,6 +151,9 @@ export async function POST(request: NextRequest) {
         }
       }
     });
+
+    console.log('Existing loan:', existingLoan); // Debug log
+    console.log('Active return:', activeReturn); // Debug log
 
     if (existingLoan || activeReturn) {
       return NextResponse.json(

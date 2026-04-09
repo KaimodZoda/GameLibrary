@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Game } from '@/types/game';
 
 interface BorrowConfirmationModalProps {
   game: Game;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (dueDate: string) => void;
   isBorrowing: boolean;
 }
 
@@ -17,6 +17,59 @@ const BorrowConfirmationModal = ({
   isBorrowing 
 }: BorrowConfirmationModalProps) => {
   if (!isOpen) return null;
+
+  // Set default due date to 14 days from today
+  const getDefaultDueDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 14);
+    return date.toISOString().split('T')[0];
+  };
+
+  const [dueDate, setDueDate] = useState(getDefaultDueDate());
+  const [dateError, setDateError] = useState('');
+
+  // Validate due date
+  const validateDueDate = (date: string) => {
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day
+    
+    const maxDate = new Date(today);
+    maxDate.setDate(maxDate.getDate() + 30); // Max 30 days from today
+    
+    if (selectedDate <= today) {
+      setDateError('Due date must be in the future');
+      return false;
+    }
+    
+    if (selectedDate > maxDate) {
+      setDateError('Due date cannot be more than 30 days from today');
+      return false;
+    }
+    
+    setDateError('');
+    return true;
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setDueDate(newDate);
+    validateDueDate(newDate);
+  };
+
+  const handleConfirm = () => {
+    if (validateDueDate(dueDate)) {
+      onConfirm(dueDate);
+    }
+  };
+
+  // Reset due date when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setDueDate(getDefaultDueDate());
+      setDateError('');
+    }
+  }, [isOpen]);
 
   const handleBackdropClick = () => {
     onClose();
@@ -68,9 +121,27 @@ const BorrowConfirmationModal = ({
           </div>
           
           <div className="bg-blue-50 border border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800">
-              <i className="fas fa-info-circle mr-2"></i>
-              Due date: {new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+            <label className="block text-sm font-medium text-blue-800 mb-2">
+              <i className="fas fa-calendar-alt mr-2"></i>
+              Select Due Date
+            </label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={handleDateChange}
+              min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]} // Tomorrow
+              max={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} // 30 days from now
+              className="w-full px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            {dateError && (
+              <p className="mt-2 text-sm text-red-600">
+                <i className="fas fa-exclamation-triangle mr-1"></i>
+                {dateError}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-blue-600">
+              <i className="fas fa-info-circle mr-1"></i>
+              Select a date between tomorrow and 30 days from today
             </p>
           </div>
           
@@ -82,8 +153,8 @@ const BorrowConfirmationModal = ({
               Cancel
             </button>
             <button
-              onClick={onConfirm}
-              disabled={isBorrowing}
+              onClick={handleConfirm}
+              disabled={isBorrowing || !!dateError}
               className="px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isBorrowing ? 'Borrowing...' : 'Confirm Borrow'}
