@@ -27,10 +27,17 @@ interface Loan {
   returnApprover?: {
     name: string;
   };
+  returnRequest?: {
+    id: number;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+  };
 }
 
 interface UseLoansReturn {
   loans: Loan[];
+  returnRequests: any[];
   loading: boolean;
   error: string | null;
   refetch: () => void;
@@ -40,6 +47,7 @@ interface UseLoansReturn {
 
 export const useLoans = (): UseLoansReturn => {
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [returnRequests, setReturnRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
@@ -49,13 +57,22 @@ export const useLoans = (): UseLoansReturn => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/loans');
-      const result = await response.json();
+      const [loansResponse, returnsResponse] = await Promise.all([
+        fetch('/api/loans'),
+        fetch('/api/returns')
+      ]);
       
-      if (result.success) {
-        setLoans(result.data);
+      const loansResult = await loansResponse.json();
+      const returnsResult = await returnsResponse.json();
+      
+      if (loansResult.success) {
+        setLoans(loansResult.data);
       } else {
-        setError(result.message || 'Failed to fetch loans');
+        setError(loansResult.message || 'Failed to fetch loans');
+      }
+
+      if (Array.isArray(returnsResult)) {
+        setReturnRequests(returnsResult);
       }
     } catch (err) {
       setError('Network error');
@@ -137,6 +154,7 @@ export const useLoans = (): UseLoansReturn => {
 
   return {
     loans,
+    returnRequests,
     loading,
     error,
     refetch: fetchLoans,

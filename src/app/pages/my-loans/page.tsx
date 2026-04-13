@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import StatCard from '@/components/StatCard';
 import { useLoans } from '@/hooks/useLoans';
+import { calculateStats, getDisplayStatus } from '@/lib/stats';
 
 export default function MyLoans() {
   const router = useRouter();
@@ -30,21 +32,6 @@ export default function MyLoans() {
     
     fetchReturnRequests();
   }, []);
-
-  // Get display status based on loan and return request
-  const getDisplayStatus = (loan: any) => {
-    const returnRequest = returnRequests.find(req => req.loanId === loan.id);
-    
-    if (loan.status === 'pending') return 'Borrow Pending';
-    if (loan.status === 'approved') return 'Borrow Approved';
-    if (loan.status === 'completed') {
-      if (!returnRequest) return 'Active';
-      if (returnRequest.status === 'pending') return 'Return Pending';
-      if (returnRequest.status === 'approved') return 'Returning';
-      if (returnRequest.status === 'completed') return 'Returned';
-    }
-    return 'Unknown';
-  };
 
   const getStatusColor = (displayStatus: string) => {
     switch (displayStatus) {
@@ -83,7 +70,7 @@ export default function MyLoans() {
 
   const handleConfirmReturn = () => {
     // Redirect to return page with loan ID
-    router.push(`./return?loanId=${selectedLoan.id}`);
+    router.push(`/pages/return?loanId=${selectedLoan.id}`);
   };
 
   const handleCancelReturn = () => {
@@ -91,33 +78,13 @@ export default function MyLoans() {
     setSelectedLoan(null);
   };
 
-  // Calculate stats based on new status logic
-  const activeLoans = loans.filter(loan => {
-    const status = getDisplayStatus(loan);
-    return status === 'Active' || status === 'Borrow Approved';
-  });
-  
-  const overdueLoans = loans.filter(loan => {
-    const status = getDisplayStatus(loan);
-    const isOverdue = new Date(loan.dueDate) < new Date();
-    return (status === 'Active' || status === 'Borrow Approved') && isOverdue;
-  });
-  
-  const returnedLoans = loans.filter(loan => {
-    const status = getDisplayStatus(loan);
-    return status === 'Returned';
-  });
+  // Calculate stats using shared utility
+  const stats = calculateStats(loans, returnRequests);
 
-  // Reusable Tailwind classes
-  const statsCardClass = "bg-white rounded-lg shadow p-6";
-  const statsIconClass = "flex-shrink-0 rounded-lg p-3";
-  const statsTextClass = "text-sm font-medium text-gray-600";
-  const statsNumberClass = "text-2xl font-bold text-gray-900";
   const tableHeaderClass = "px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider";
   const tableCellClass = "px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900";
   const statusBadgeClass = "inline-flex px-2 py-1 text-xs font-semibold rounded-full";
   const actionButtonClass = "text-indigo-600 hover:text-indigo-900 mr-3";
-  const dangerButtonClass = "text-red-600 hover:text-red-900 mr-3";
   const secondaryButtonClass = "text-gray-600 hover:text-gray-900";
 
   return (
@@ -131,40 +98,12 @@ export default function MyLoans() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className={statsCardClass}>
-              <div className="flex items-center">
-                <div className={`${statsIconClass} bg-indigo-100`}>
-                  <i className="fas fa-book text-indigo-600 text-xl"></i>
-                </div>
-                <div className="ml-4">
-                  <p className={statsTextClass}>Active Loans</p>
-                  <p className={statsNumberClass}>{activeLoans.length}</p>
-                </div>
-              </div>
-            </div>
-            <div className={statsCardClass}>
-              <div className="flex items-center">
-                <div className={`${statsIconClass} bg-red-100`}>
-                  <i className="fas fa-exclamation-triangle text-red-600 text-xl"></i>
-                </div>
-                <div className="ml-4">
-                  <p className={statsTextClass}>Overdue</p>
-                  <p className={statsNumberClass}>{overdueLoans.length}</p>
-                </div>
-              </div>
-            </div>
-            <div className={statsCardClass}>
-              <div className="flex items-center">
-                <div className={`${statsIconClass} bg-green-100`}>
-                  <i className="fas fa-check-circle text-green-600 text-xl"></i>
-                </div>
-                <div className="ml-4">
-                  <p className={statsTextClass}>Returned</p>
-                  <p className={statsNumberClass}>{returnedLoans.length}</p>
-                </div>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+            <StatCard type="pending" value={stats.pendingLoans} />
+            <StatCard type="return-in-progress" value={stats.returnInProgressLoans} />
+            <StatCard type="borrowed" value={stats.activeLoans} />
+            <StatCard type="overdue" value={stats.overdueLoans} />
+            <StatCard type="returned" value={stats.returnedLoans} />
           </div>
 
           {/* Loans Table */}
@@ -221,8 +160,8 @@ export default function MyLoans() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex justify-center">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getDisplayStatus(loan))}`}>
-                            {getDisplayStatus(loan)}
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getDisplayStatus(loan, returnRequests))}`}>
+                            {getDisplayStatus(loan, returnRequests)}
                           </span>
                         </div>
                       </td>
@@ -230,7 +169,7 @@ export default function MyLoans() {
                         <div className="flex items-center justify-center">
                           <div>
                             {(() => {
-                              const status = getDisplayStatus(loan);
+                              const status = getDisplayStatus(loan, returnRequests);
                               if (status === 'Returned') {
                                 return (
                                   <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
@@ -438,8 +377,8 @@ export default function MyLoans() {
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-gray-500">Current Status</p>
-                  <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getDisplayStatus(selectedLoan))}`}>
-                    {getDisplayStatus(selectedLoan)}
+                  <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getDisplayStatus(selectedLoan, returnRequests))}`}>
+                    {getDisplayStatus(selectedLoan, returnRequests)}
                   </span>
                 </div>
               </div>

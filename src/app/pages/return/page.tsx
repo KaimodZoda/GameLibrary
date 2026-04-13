@@ -57,8 +57,8 @@ export default function ReturnPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`/api/returns`, {
-        method: 'POST',
+      const response = await fetch(`/api/loans/${selectedLoan.id}/return`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -70,13 +70,19 @@ export default function ReturnPage() {
         })
       });
       
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to return game: Server error');
+        return;
+      }
+      
       const result = await response.json();
       
       if (result.success) {
-        console.log('Game returned successfully!');
         router.push('./my-loans?returnSuccess=true');
       } else {
-        console.error('Failed to return game:', result.error || result.message);
+        console.error('Failed to return game:', result.message);
       }
     } catch (error) {
       console.error('Error returning game:', error);

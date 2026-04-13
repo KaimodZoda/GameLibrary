@@ -1,6 +1,8 @@
 import { Game } from '@/types/game';
 import { memo } from 'react';
 import { useSession } from 'next-auth/react';
+import { useLoans } from '@/hooks/useLoans';
+import { getDisplayStatus } from '@/lib/stats';
 
 interface GameCardProps {
   game: Game;
@@ -21,6 +23,19 @@ const getPlatformIcon = (platform: string) => {
 // Simplified GameCard that just emits borrow events
 const GameCard = ({ game, onBorrowClick, onUpdate }: GameCardProps) => {
   const { data: session } = useSession();
+  const { loans, returnRequests } = useLoans();
+
+  // Check if this game has a pending loan or return in progress
+  const hasPendingLoan = loans.some((loan: any) => {
+    const status = getDisplayStatus(loan);
+    return loan.gameId === game.id && status === 'Borrow Pending';
+  });
+
+  // Check if this game has return pending or return approved status
+  const hasReturnInProgress = loans.some((loan: any) => {
+    const status = getDisplayStatus(loan, returnRequests);
+    return loan.gameId === game.id && (status === 'Return Pending' || status === 'Returning');
+  });
   
   const handleBorrow = () => {
     if (!onBorrowClick) return;
@@ -51,20 +66,40 @@ const GameCard = ({ game, onBorrowClick, onUpdate }: GameCardProps) => {
           <span>{game.genre}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className={`font-semibold ${game.available ? 'text-green-600' : 'text-red-600'}`}>
-            <i className={`fas ${game.available ? 'fa-check-circle' : 'fa-times-circle'} mr-1`} aria-hidden="true"></i>
-            {game.available ? 'Available' : 'Borrowed'}
+          <span className={`font-semibold ${
+            hasPendingLoan 
+              ? 'text-orange-600' 
+              : hasReturnInProgress
+                ? 'text-purple-600'
+                : game.available 
+                  ? 'text-green-600' 
+                    : 'text-red-600'
+          }`}>
+            <i className={`fas ${
+              hasPendingLoan 
+                ? 'fa-hourglass-half' 
+                : hasReturnInProgress
+                  ? 'fa-spinner'
+                  : game.available 
+                    ? 'fa-check-circle' 
+                      : 'fa-times-circle'
+            } mr-1`} aria-hidden="true"></i>
+            {hasPendingLoan ? 'Pending' : hasReturnInProgress ? 'Return in Progress' : game.available ? 'Available' : 'Borrowed'}
           </span>
           <button 
             className={`px-3 py-1 rounded text-sm ${
-              game.available 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                : 'bg-gray-400 text-white cursor-not-allowed'
+              hasPendingLoan 
+                ? 'bg-orange-600 text-white cursor-not-allowed'
+                : hasReturnInProgress
+                  ? 'bg-purple-600 text-white cursor-not-allowed'
+                  : game.available 
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                      : 'bg-gray-400 text-white cursor-not-allowed'
             }`}
-            disabled={!game.available}
+            disabled={!game.available || hasPendingLoan || hasReturnInProgress}
             onClick={handleBorrow}
           >
-            {game.available ? 'Borrow' : 'Unavailable'}
+            {hasPendingLoan ? 'Pending' : hasReturnInProgress ? 'Return in Progress' : game.available ? 'Borrow' : 'Unavailable'}
           </button>
         </div>
       </div>

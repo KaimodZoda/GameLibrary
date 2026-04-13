@@ -1,22 +1,39 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { calculateStats } from '@/lib/stats';
 
 export async function GET() {
   try {
-    // Parallel fetch of game counts
+    // Fetch all loans and return requests to calculate stats using shared utility
+    const [allLoans, returnRequests] = await Promise.all([
+      prisma.loan.findMany({
+        include: {
+          game: true,
+          user: true
+        }
+      }),
+      prisma.return.findMany()
+    ]);
+
+    const stats = calculateStats(allLoans, returnRequests);
+
+    // Game counts
     const [totalGames, availableGames] = await Promise.all([
       prisma.game.count(),
       prisma.game.count({ where: { available: true } })
     ]);
     
-    const borrowedGames = totalGames - availableGames;
+    const borrowedGames = stats.activeLoans;
 
     return NextResponse.json({
       success: true,
       data: {
         totalGames,
         availableGames,
-        borrowedGames
+        borrowedGames,
+        pendingLoans: stats.pendingLoans,
+        overdueLoans: stats.overdueLoans,
+        returnInProgressLoans: stats.returnInProgressLoans
       }
     });
   } catch (error) {

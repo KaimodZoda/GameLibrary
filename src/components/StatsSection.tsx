@@ -1,27 +1,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-interface Stat {
-  id: number;
-  title: string;
-  value: string;
-  icon: string;
-  bgColor: string;
-  iconColor: string;
-}
+import StatCard from './StatCard';
 
 interface StatsData {
   totalGames: number;
   availableGames: number;
   borrowedGames: number;
+  pendingLoans: number;
+  returnInProgressLoans: number;
+  overdueLoans: number;
 }
 
 const StatsSection = () => {
   const [stats, setStats] = useState<StatsData>({
     totalGames: 0,
     availableGames: 0,
-    borrowedGames: 0
+    borrowedGames: 0,
+    pendingLoans: 0,
+    returnInProgressLoans: 0,
+    overdueLoans: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -50,8 +48,8 @@ const StatsSection = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[1, 2, 3].map((i) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="animate-pulse">
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="flex items-center">
@@ -87,56 +85,14 @@ const StatsSection = () => {
     );
   }
 
-  const statsArray: Stat[] = [
-    {
-      id: 1,
-      title: 'Total Games',
-      value: stats.totalGames.toString(),
-      icon: 'fas fa-gamepad',
-      bgColor: 'bg-indigo-100',
-      iconColor: 'text-indigo-600'
-    },
-    {
-      id: 2,
-      title: 'Available',
-      value: stats.availableGames.toString(),
-      icon: 'fas fa-check-circle',
-      bgColor: 'bg-green-100',
-      iconColor: 'text-green-600'
-    },
-    {
-      id: 3,
-      title: 'Borrowed',
-      value: stats.borrowedGames.toString(),
-      icon: 'fas fa-clock',
-      bgColor: 'bg-yellow-100',
-      iconColor: 'text-yellow-600'
-    },
-    {
-      id: 4,
-      title: 'Overdue',
-      value: '0', // Placeholder - can be implemented later with due dates
-      icon: 'fas fa-exclamation-triangle',
-      bgColor: 'bg-red-100',
-      iconColor: 'text-red-600'
-    }
-  ];
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      {statsArray.map((stat) => (
-        <div key={stat.id} className="bg-white p-6 rounded-lg shadow-sm">
-          <div className="flex items-center">
-            <div className={`w-12 h-12 rounded-full ${stat.bgColor} flex items-center justify-center`}>
-              <i className={`fas ${stat.icon} ${stat.iconColor} text-xl`}></i>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-900">{stat.title}</p>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-            </div>
-          </div>
-        </div>
-      ))}
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
+      <StatCard type="total-games" value={stats.totalGames} />
+      <StatCard type="available" value={stats.availableGames} />
+      <StatCard type="pending" value={stats.pendingLoans} />
+      <StatCard type="return-in-progress" value={stats.returnInProgressLoans} />
+      <StatCard type="borrowed" value={stats.borrowedGames} />
+      <StatCard type="overdue" value={stats.overdueLoans} />
     </div>
   );
 };

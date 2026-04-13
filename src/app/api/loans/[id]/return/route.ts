@@ -42,48 +42,38 @@ export async function PUT(
       );
     }
 
-    if (loan.returnedAt) {
+    // Check if loan already has a return request
+    const existingReturn = await prisma.return.findUnique({
+      where: { loanId }
+    });
+
+    if (existingReturn && existingReturn.status === 'completed') {
       return NextResponse.json(
-        { success: false, message: 'Game already returned' },
+        { success: false, message: 'Loan already returned' },
         { status: 400 }
       );
     }
 
     const { returnMethod, trackingNumber, notes } = await request.json();
 
-    // Update the loan with return information
-    const updatedLoan = await prisma.loan.update({
-      where: { id: loanId },
+    // Create return record with pending status
+    const returnRecord = await prisma.return.create({
       data: {
-        returnedAt: new Date(),
-        returnApprovedAt: new Date(),
-        returnApprovedBy: userId
+        loanId,
+        returnMethod,
+        trackingNumber,
+        returnNotes: notes,
+        status: 'pending'
       }
     });
 
-    // Make the game available again
-    await prisma.game.update({
-      where: { id: loan.gameId },
-      data: { available: true }
-    });
-
-    // TODO: Create return record for tracking purposes
-    // await prisma.return.create({
-    //   data: {
-    //     loanId,
-    //     returnMethod,
-    //     trackingNumber,
-    //     notes,
-    //     processedBy: userId
-    //   }
-    // });
-
     return NextResponse.json({
       success: true,
-      message: 'Game returned successfully',
+      message: 'Return request submitted successfully',
       data: {
-        loan: updatedLoan,
-        game: loan.game
+        loan,
+        game: loan.game,
+        returnRecord
       }
     });
   } catch (error) {
