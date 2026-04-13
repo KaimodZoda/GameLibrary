@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import StatCard from './StatCard';
 
 interface StatsData {
@@ -13,6 +14,7 @@ interface StatsData {
 }
 
 const StatsSection = () => {
+  const { data: session } = useSession();
   const [stats, setStats] = useState<StatsData>({
     totalGames: 0,
     availableGames: 0,
@@ -26,12 +28,14 @@ const StatsSection = () => {
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [session]);
 
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/stats');
+      const userId = session?.user?.id;
+      const url = userId ? `/api/stats?userId=${userId}` : '/api/stats';
+      const response = await fetch(url);
       const result = await response.json();
       
       if (result.success) {

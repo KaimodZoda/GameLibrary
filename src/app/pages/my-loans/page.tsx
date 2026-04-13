@@ -2,36 +2,50 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import StatCard from '@/components/StatCard';
 import { useLoans } from '@/hooks/useLoans';
-import { calculateStats, getDisplayStatus } from '@/lib/stats';
+import { getDisplayStatus } from '@/lib/stats';
 
 export default function MyLoans() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showReturnConfirmModal, setShowReturnConfirmModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
-  const { loans, loading, error, refetch, returnGame } = useLoans();
-  const [returnRequests, setReturnRequests] = useState<any[]>([]);
+  const { loans, loading, error, refetch, returnGame, returnRequests } = useLoans();
+  const [stats, setStats] = useState({
+    totalGames: 0,
+    availableGames: 0,
+    borrowedGames: 0,
+    pendingLoans: 0,
+    returnInProgressLoans: 0,
+    overdueLoans: 0,
+    returnedLoans: 0
+  });
 
-  // Fetch return requests when component mounts
+  // Fetch stats when component mounts or session changes
   useEffect(() => {
-    const fetchReturnRequests = async () => {
+    const fetchStats = async () => {
       try {
-        const response = await fetch('/api/returns');
+        const userId = session?.user?.id;
+        const url = userId ? `/api/stats?userId=${userId}` : '/api/stats';
+        const response = await fetch(url);
         if (response.ok) {
-          const data = await response.json();
-          setReturnRequests(data);
+          const result = await response.json();
+          if (result.success) {
+            setStats(result.data);
+          }
         }
       } catch (error) {
-        console.error('Error fetching return requests:', error);
+        console.error('Error fetching stats:', error);
       }
     };
     
-    fetchReturnRequests();
-  }, []);
+    fetchStats();
+  }, [session]);
 
   const getStatusColor = (displayStatus: string) => {
     switch (displayStatus) {
@@ -78,9 +92,6 @@ export default function MyLoans() {
     setSelectedLoan(null);
   };
 
-  // Calculate stats using shared utility
-  const stats = calculateStats(loans, returnRequests);
-
   const tableHeaderClass = "px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider";
   const tableCellClass = "px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900";
   const statusBadgeClass = "inline-flex px-2 py-1 text-xs font-semibold rounded-full";
@@ -101,7 +112,7 @@ export default function MyLoans() {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
             <StatCard type="pending" value={stats.pendingLoans} />
             <StatCard type="return-in-progress" value={stats.returnInProgressLoans} />
-            <StatCard type="borrowed" value={stats.activeLoans} />
+            <StatCard type="borrowed" value={stats.borrowedGames} />
             <StatCard type="overdue" value={stats.overdueLoans} />
             <StatCard type="returned" value={stats.returnedLoans} />
           </div>

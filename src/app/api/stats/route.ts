@@ -1,17 +1,32 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateStats } from '@/lib/stats';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Fetch all loans and return requests to calculate stats using shared utility
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    // Fetch loans and return requests to calculate stats using shared utility
+    // If userId is provided, filter loans by user for user-specific stats
+    const loansQuery = userId 
+      ? prisma.loan.findMany({
+          where: { userId: parseInt(userId) },
+          include: {
+            game: true,
+            user: true
+          }
+        })
+      : prisma.loan.findMany({
+          include: {
+            game: true,
+            user: true
+          }
+        });
+
     const [allLoans, returnRequests] = await Promise.all([
-      prisma.loan.findMany({
-        include: {
-          game: true,
-          user: true
-        }
-      }),
+      loansQuery,
       prisma.return.findMany()
     ]);
 
@@ -33,7 +48,8 @@ export async function GET() {
         borrowedGames,
         pendingLoans: stats.pendingLoans,
         overdueLoans: stats.overdueLoans,
-        returnInProgressLoans: stats.returnInProgressLoans
+        returnInProgressLoans: stats.returnInProgressLoans,
+        returnedLoans: stats.returnedLoans
       }
     });
   } catch (error) {

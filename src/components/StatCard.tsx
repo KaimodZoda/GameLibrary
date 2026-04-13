@@ -72,7 +72,7 @@ const StatCard = ({ type, value }: StatCardProps) => {
         </div>
         <div className="ml-4">
           <p className="text-sm font-medium text-gray-900">{config.title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value.toString()}</p>
+          <p className="text-2xl font-bold text-gray-900">{value !== undefined ? value.toString() : '0'}</p>
         </div>
       </div>
     </div>
