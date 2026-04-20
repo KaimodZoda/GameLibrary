@@ -1,34 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
+import { NextRequest } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get the session
-    const session = await getServerSession();
-    
-    // Check if user is authenticated
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    
-    // Check if user is admin (we need to get the user from database to check role)
-    const user = await (prisma as any).user.findUnique({
-      where: { email: session.user.email },
-      select: { role: true }
-    });
-    
-    if (!user || user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { success: false, message: 'Admin access required' },
-        { status: 403 }
-      );
+    const authResult = await requireAdmin(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
-    const users = await (prisma as any).user.findMany({
+    // Get all users
+    const allUsers = await prisma.user.findMany({
       select: {
         id: true,
         email: true,
@@ -41,7 +24,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: users
+      data: allUsers
     });
   } catch (error) {
     console.error('Error fetching users:', error);

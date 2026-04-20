@@ -1,18 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
 
 // GET /api/admin/loans - Get all loans for admin
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken({ req: request });
-    
-    if (!token || (token as any).role !== 'ADMIN') {
-      return NextResponse.json(
-        { success: false, message: 'Admin access required' },
-        { status: 403 }
-      );
+    const authResult = await requireAdmin(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
     const loans = await prisma.loan.findMany({

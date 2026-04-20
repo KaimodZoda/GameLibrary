@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { requireAuth, getUserId, isAdmin } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
@@ -16,6 +22,17 @@ export async function GET(request: NextRequest) {
     });
 
     let returns = allReturns;
+    
+    // Only allow filtering by authenticated user's ID for non-admins
+    if (userId && !isAdmin(authResult)) {
+      const currentUserId = getUserId(authResult);
+      if (parseInt(userId) !== currentUserId) {
+        return NextResponse.json(
+          { success: false, message: 'Access denied' },
+          { status: 403 }
+        );
+      }
+    }
     
     if (userId) {
       // Filter returns for specific user by checking their loans

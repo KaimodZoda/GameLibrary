@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
 
 // PUT /api/admin/returns/:id/approve - Approve a return request
 export async function PUT(
@@ -9,16 +9,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const token = await getToken({ req: request });
-    
-    if (!token || (token as any).role !== 'ADMIN') {
-      return NextResponse.json(
-        { success: false, message: 'Admin access required' },
-        { status: 403 }
-      );
+    const authResult = await requireAdmin(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
-    const adminId = parseInt(token.sub!);
+    const adminId = parseInt(authResult.sub!);
     const resolvedParams = await params;
     const returnId = parseInt(resolvedParams.id);
     const { notes } = await request.json();

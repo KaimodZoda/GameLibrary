@@ -2,17 +2,26 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateStats } from '@/lib/stats';
+import { requireAuth, getUserId } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+    
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    
+    // Use authenticated user's ID if userId not provided
+    const currentUserId = userId || getUserId(authResult).toString();
 
     // Fetch loans and return requests to calculate stats using shared utility
     // If userId is provided, filter loans by user for user-specific stats
-    const loansQuery = userId 
+    const loansQuery = currentUserId 
       ? prisma.loan.findMany({
-          where: { userId: parseInt(userId) },
+          where: { userId: parseInt(currentUserId) },
           include: {
             game: true,
             user: true
