@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { useLoans } from '@/hooks/useLoans';
 
 export default function ReturnPage() {
@@ -93,8 +91,7 @@ export default function ReturnPage() {
 
   return (
     <>
-      <Header />
-      <main className="flex-grow bg-gray-50 py-8">
+      <div className="bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Return Game</h1>
@@ -269,8 +266,7 @@ export default function ReturnPage() {
             </div>
           </div>
         </div>
-      </main>
-      <Footer />
+      </div>
     </>
   );
 }

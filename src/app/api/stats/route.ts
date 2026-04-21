@@ -13,9 +13,10 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    
-    // Use authenticated user's ID if userId not provided
-    const currentUserId = userId || getUserId(authResult).toString();
+
+    // Only filter by user if userId is explicitly provided
+    // Otherwise return global stats
+    const currentUserId = userId;
 
     // Fetch loans and return requests to calculate stats using shared utility
     // If userId is provided, filter loans by user for user-specific stats

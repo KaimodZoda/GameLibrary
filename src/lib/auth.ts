@@ -36,7 +36,7 @@ export async function requireAuth(request: NextRequest): Promise<NextResponse | 
  * Check if user has admin role
  */
 export function isAdmin(token: any): boolean {
-  return token?.role === 'admin';
+  return token?.role === 'admin' || token?.role === 'ADMIN';
 }
 
 /**

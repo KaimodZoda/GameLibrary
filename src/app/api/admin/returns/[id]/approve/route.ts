@@ -51,7 +51,7 @@ export async function PUT(
     // Create admin action record
     await prisma.adminAction.create({
       data: {
-        requestId: returnId,
+        returnId: returnId,
         adminId,
         action: 'return_approved',
         notes: notes || 'Return request approved'

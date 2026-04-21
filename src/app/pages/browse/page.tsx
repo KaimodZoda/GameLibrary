@@ -8,10 +8,10 @@ import Container from '@/components/ui/Container';
 import { useSession } from 'next-auth/react';
 import { useGameFilters } from '@/hooks/useGameFilters';
 
-export default function Home() {
+export default function Browse() {
   const { data: session } = useSession();
   
-  // Manage filter state at the Home level
+  // Manage filter state at the Browse level
   const { platform, setPlatform, genre, setGenre, searchQuery, setSearchQuery, applyFilters, clearFilters, getCurrentFilters } = useGameFilters();
 
   // Apply filters using the window functions from GameGrid

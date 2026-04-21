@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import StatCard from '@/components/StatCard';
 import { useLoans } from '@/hooks/useLoans';
 import { getDisplayStatus } from '@/lib/stats';
@@ -100,8 +98,7 @@ export default function MyLoans() {
 
   return (
     <>
-      <Header />
-      <main className="flex-grow bg-gray-50 py-8">
+      <div className="bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">My Loans</h1>
@@ -241,7 +238,7 @@ export default function MyLoans() {
             </div>
           )}
         </div>
-      </main>
+      </div>
       
       {/* Details Modal */}
       {showDetailsModal && selectedLoan && (
@@ -451,7 +448,6 @@ export default function MyLoans() {
         </div>
       )}
       
-      <Footer />
     </>
   );
 }

@@ -45,7 +45,7 @@ interface UseLoansReturn {
   returnGame: (loanId: number) => Promise<{ success: boolean; message: string }>;
 }
 
-export const useLoans = (): UseLoansReturn => {
+export const useLoans = (skipFetch = false): UseLoansReturn => {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [returnRequests, setReturnRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,10 +147,12 @@ export const useLoans = (): UseLoansReturn => {
   };
 
   useEffect(() => {
-    if (session) {
+    if (session && !skipFetch) {
       fetchLoans();
+    } else if (skipFetch) {
+      setLoading(false);
     }
-  }, [session]);
+  }, [session, skipFetch]);
 
   return {
     loans,

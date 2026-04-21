@@ -10,14 +10,14 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link href="/pages/home" className="flex items-center">
+            <Link href="/pages/browse" className="flex items-center">
               <i className="fas fa-gamepad text-indigo-600 text-2xl mr-3"></i>
               <h1 className="text-xl font-bold text-gray-900">Game Library</h1>
             </Link>
           </div>
           <div className="flex items-center space-x-4">
-            <Link href="/pages/home" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
-              <i className="fas fa-search mr-1" aria-hidden="true"></i> Search
+            <Link href="/pages/browse" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
+              <i className="fas fa-search mr-1" aria-hidden="true"></i> Browse
             </Link>
             {status === 'authenticated' ? (
               <>
@@ -46,7 +46,7 @@ const Header = () => {
                     )}
                   </div>
                   <button
-                    onClick={() => signOut()}
+                    onClick={() => signOut({ callbackUrl: '/' })}
                     className="text-gray-600 hover:text-red-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
                     <i className="fas fa-sign-out-alt mr-1" aria-hidden="true"></i> Sign out

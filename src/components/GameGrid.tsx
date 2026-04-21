@@ -9,20 +9,24 @@ import { useLoans } from '@/hooks/useLoans';
 import { useSession } from 'next-auth/react';
 import Button from './ui/Button';
 
-interface GameGridProps {
-  onBorrowClick?: (game: Game) => void;
-}
-
 interface GameCardState {
   [key: number]: Game;
 }
 
-const GameGrid = ({ onBorrowClick }: GameGridProps) => {
+interface GameGridProps {
+  isPublic?: boolean;
+  showAllLoans?: boolean;
+}
+
+const GameGrid = ({ isPublic = false, showAllLoans = false }: GameGridProps) => {
   const { games, loading, error, refetch, applyFilters: hookApplyFilters, filteringMode } = useGames();
-  const { loans, returnRequests, borrowGame } = useLoans();
+  // Skip fetching user loans when showing all loans to avoid redundant API calls
+  const { loans: userLoans, returnRequests: userReturnRequests, borrowGame } = useLoans(showAllLoans);
   const { data: session } = useSession();
+  const [allLoans, setAllLoans] = useState<any[]>([]);
+  const [allReturnRequests, setAllReturnRequests] = useState<any[]>([]);
   const [gameStates, setGameStates] = useState<GameCardState>({});
-  const [isFiltering, setIsFiltering] = useState(false);
+  const [isFiltering] = useState(false);
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isBorrowing, setIsBorrowing] = useState(false);
@@ -40,7 +44,7 @@ const GameGrid = ({ onBorrowClick }: GameGridProps) => {
   };
 
   const handleConfirmBorrow = async (dueDate: string) => {
-    if (!selectedGame || !session?.user) return;
+    if (!selectedGame || !session?.user || !borrowGame) return;
     
     setIsBorrowing(true);
     
@@ -51,6 +55,10 @@ const GameGrid = ({ onBorrowClick }: GameGridProps) => {
         setShowBorrowModal(false);
         // Refetch games to update availability status
         refetch();
+        // Refetch all loans if showing global status
+        if (showAllLoans) {
+          fetchAllLoans();
+        }
         // Update local state
         setGameStates(prev => ({
           ...prev,
@@ -70,6 +78,33 @@ const GameGrid = ({ onBorrowClick }: GameGridProps) => {
     setShowBorrowModal(false);
     setSelectedGame(null);
   };
+
+  // Fetch all loans and return requests for global status display
+  const fetchAllLoans = async () => {
+    if (showAllLoans && session?.user) {
+      try {
+        const [loansResponse, returnsResponse] = await Promise.all([
+          fetch('/api/loans/all'),
+          fetch('/api/returns')
+        ]);
+        const loansResult = await loansResponse.json();
+        const returnsResult = await returnsResponse.json();
+        
+        if (loansResult.success) {
+          setAllLoans(loansResult.data);
+        }
+        if (Array.isArray(returnsResult)) {
+          setAllReturnRequests(returnsResult);
+        }
+      } catch (error) {
+        console.error('Error fetching all loans:', error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchAllLoans();
+  }, [showAllLoans, session]);
 
   // Expose applyFilters function to parent
   useEffect(() => {
@@ -156,10 +191,12 @@ const GameGrid = ({ onBorrowClick }: GameGridProps) => {
           <GameCard 
             key={game.id} 
             game={gameStates[game.id] || game} 
-            loans={loans}
-            returnRequests={returnRequests}
+            loans={showAllLoans ? allLoans : userLoans}
+            returnRequests={showAllLoans ? allReturnRequests : userReturnRequests}
             onBorrowClick={handleGameCardBorrow}
             onUpdate={handleGameUpdate}
+            isPublic={isPublic}
+            showGlobalStatus={showAllLoans}
           />
         ))}
       </div>

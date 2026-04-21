@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Header from '@/components/Header';
 import AddGameForm from '@/components/admin/AddGameForm';
 import GameList from '@/components/admin/GameList';
 import UserManagement from '@/components/admin/UserManagement';
@@ -59,9 +58,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      <div className="flex-grow">
+    <div className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
@@ -127,7 +124,6 @@ export default function AdminPage() {
             {activeTab === 'requests' && <RequestManagement />}
           </div>
         </div>
-      </div>
     </div>
   );
 }

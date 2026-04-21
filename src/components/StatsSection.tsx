@@ -34,10 +34,12 @@ const StatsSection = () => {
     try {
       setLoading(true);
       const userId = session?.user?.id;
-      const url = userId ? `/api/stats?userId=${userId}` : '/api/stats';
+      const isUserAdmin = session?.user?.role === 'admin' || session?.user?.role === 'ADMIN';
+      // Admins get global stats, regular users get their own stats
+      const url = isUserAdmin ? '/api/stats' : (userId ? `/api/stats?userId=${userId}` : '/api/stats');
       const response = await fetch(url);
       const result = await response.json();
-      
+
       if (result.success) {
         setStats(result.data);
       } else {

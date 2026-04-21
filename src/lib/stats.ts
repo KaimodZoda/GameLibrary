@@ -28,7 +28,7 @@ export const calculateStats = (loans: any[], returnRequests?: any[]) => {
   const overdueLoans = loans.filter(loan => {
     const status = getDisplayStatus(loan, returnRequests);
     const isOverdue = new Date(loan.dueDate) < new Date();
-    return (status === 'Active' || status === 'Borrow Approved') && isOverdue;
+    return (status === 'Active') && isOverdue;
   });
 
   const returnedLoans = loans.filter(loan => {
