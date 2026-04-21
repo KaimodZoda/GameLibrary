@@ -44,6 +44,7 @@ interface UseLoansReturn {
   borrowGame: (gameId: number, dueDate?: string) => Promise<{ success: boolean; message: string; data?: any }>;
   returnGame: (loanId: number) => Promise<{ success: boolean; message: string }>;
   cancelLoan: (loanId: number) => Promise<{ success: boolean; message: string }>;
+  cancelReturnRequest: (returnId: number) => Promise<{ success: boolean; message: string }>;
 }
 
 export const useLoans = (skipFetch = false): UseLoansReturn => {
@@ -169,6 +170,28 @@ export const useLoans = (skipFetch = false): UseLoansReturn => {
     }
   };
 
+  const cancelReturnRequest = async (returnId: number) => {
+    try {
+      const response = await fetch(`/api/returns/${returnId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Refetch loans to update the list
+        await fetchLoans();
+      }
+
+      return result;
+    } catch (err) {
+      return {
+        success: false,
+        message: 'Network error'
+      };
+    }
+  };
+
   useEffect(() => {
     if (session && !skipFetch) {
       fetchLoans();
@@ -185,6 +208,7 @@ export const useLoans = (skipFetch = false): UseLoansReturn => {
     refetch: fetchLoans,
     borrowGame,
     returnGame,
-    cancelLoan
+    cancelLoan,
+    cancelReturnRequest
   };
 };

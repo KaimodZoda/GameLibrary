@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLoans } from '@/hooks/useLoans';
+import { isLoanOverdue } from '@/lib/stats';
 
 export default function ReturnPage() {
   const router = useRouter();
@@ -130,11 +131,11 @@ export default function ReturnPage() {
                         </div>
                         <div className="flex-shrink-0">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            !loan.returnedAt && new Date(loan.dueDate) < new Date() 
+                            !loan.returnedAt && isLoanOverdue(loan.dueDate)
                               ? 'bg-red-100 text-red-800'
                               : 'bg-green-100 text-green-800'
                           }`}>
-                            {!loan.returnedAt && new Date(loan.dueDate) < new Date() ? 'Overdue' : 'Active'}
+                            {!loan.returnedAt && isLoanOverdue(loan.dueDate) ? 'Overdue' : 'Active'}
                           </span>
                         </div>
                       </div>

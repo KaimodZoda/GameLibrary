@@ -13,8 +13,10 @@ export default function MyLoans() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showReturnConfirmModal, setShowReturnConfirmModal] = useState(false);
   const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+  const [showCancelReturnConfirmModal, setShowCancelReturnConfirmModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
-  const { loans, loading, error, refetch, returnGame, returnRequests, cancelLoan } = useLoans();
+  const [selectedReturnRequest, setSelectedReturnRequest] = useState<any>(null);
+  const { loans, loading, error, refetch, returnGame, returnRequests, cancelLoan, cancelReturnRequest } = useLoans();
   const [stats, setStats] = useState({
     totalGames: 0,
     availableGames: 0,
@@ -123,6 +125,39 @@ export default function MyLoans() {
     setSelectedLoan(null);
   };
 
+  const handleCancelReturnClick = (loan: any, returnRequest: any) => {
+    setSelectedLoan(loan);
+    setSelectedReturnRequest(returnRequest);
+    setShowCancelReturnConfirmModal(true);
+  };
+
+  const handleConfirmCancelReturn = async () => {
+    if (!selectedReturnRequest || !cancelReturnRequest) return;
+
+    const result = await cancelReturnRequest(selectedReturnRequest.id);
+    if (result.success) {
+      setShowCancelReturnConfirmModal(false);
+      setSelectedLoan(null);
+      setSelectedReturnRequest(null);
+      // Refetch stats to update the numbers
+      const userId = session?.user?.id;
+      const url = userId ? `/api/stats?userId=${userId}` : '/api/stats';
+      const response = await fetch(url);
+      if (response.ok) {
+        const statsResult = await response.json();
+        if (statsResult.success) {
+          setStats(statsResult.data);
+        }
+      }
+    }
+  };
+
+  const handleCancelCancelReturnModal = () => {
+    setShowCancelReturnConfirmModal(false);
+    setSelectedLoan(null);
+    setSelectedReturnRequest(null);
+  };
+
   const tableHeaderClass = "px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider";
   const tableCellClass = "px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900";
   const statusBadgeClass = "inline-flex px-2 py-1 text-xs font-semibold rounded-full";
@@ -219,10 +254,16 @@ export default function MyLoans() {
                                 );
                               }
                               if (status === 'Return Pending' || status === 'Returning') {
+                                const returnRequest = returnRequests.find(req => req.loanId === loan.id);
                                 return (
-                                  <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
-                                    Details
-                                  </button>
+                                  <>
+                                    <button className="text-red-600 hover:text-red-900 mr-3" onClick={() => handleCancelReturnClick(loan, returnRequest)}>
+                                      Cancel Return
+                                    </button>
+                                    <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                      Details
+                                    </button>
+                                  </>
                                 );
                               }
                               // Only show Return button for Active loans
@@ -253,7 +294,7 @@ export default function MyLoans() {
                                   </>
                                 );
                               }
-                              // For other statuses, show only Details
+                              // For other statuses (Overdue), show only Details
                               return (
                                 <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
                                   Details
@@ -540,6 +581,59 @@ export default function MyLoans() {
                   className="px-4 py-2 bg-red-600 border border-transparent rounded-md text-white font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   Yes, Cancel Request
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Return Confirmation Modal */}
+      {showCancelReturnConfirmModal && selectedLoan && selectedReturnRequest && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+          onClick={handleCancelCancelReturnModal}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Cancel Return Request</h3>
+              <button
+                onClick={handleCancelCancelReturnModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-2">{selectedLoan.game.title}</h4>
+                <p className="text-sm text-gray-600">{selectedLoan.game.platform}</p>
+                <p className="text-xs text-gray-500">{selectedLoan.game.genre}</p>
+              </div>
+
+              <div className="bg-red-50 border border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-800">
+                  <i className="fas fa-exclamation-triangle mr-2"></i>
+                  Are you sure you want to cancel this return request? This action cannot be undone.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleCancelCancelReturnModal}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  No, Keep It
+                </button>
+                <button
+                  onClick={handleConfirmCancelReturn}
+                  className="px-4 py-2 bg-red-600 border border-transparent rounded-md text-white font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  Yes, Cancel Return
                 </button>
               </div>
             </div>
