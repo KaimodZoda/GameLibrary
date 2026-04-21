@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import HeroSection from '@/components/HeroSection';
 import StatsSection from '@/components/StatsSection';
 import GameGrid from '@/components/GameGrid';
@@ -9,8 +11,21 @@ import { useSession } from 'next-auth/react';
 import { useGameFilters } from '@/hooks/useGameFilters';
 
 export default function Browse() {
-  const { data: session } = useSession();
-  
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  // Redirect to sign-in if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/pages/auth/signin');
+    }
+  }, [status, router]);
+
+  // Don't render if not authenticated
+  if (status === 'unauthenticated') {
+    return null;
+  }
+
   // Manage filter state at the Browse level
   const { platform, setPlatform, genre, setGenre, searchQuery, setSearchQuery, applyFilters, clearFilters, getCurrentFilters } = useGameFilters();
 
