@@ -7,12 +7,13 @@ import AddGameForm from '@/components/admin/AddGameForm';
 import GameList from '@/components/admin/GameList';
 import UserManagement from '@/components/admin/UserManagement';
 import RequestManagement from '@/components/admin/RequestManagementUnified';
+import AdminActions from '@/components/admin/AdminActions';
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'add' | 'list' | 'users' | 'requests'>('add');
+  const [activeTab, setActiveTab] = useState<'add' | 'list' | 'users' | 'requests' | 'actions'>('add');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -36,6 +37,8 @@ export default function AdminPage() {
       setActiveTab('users');
     } else if (tabParam === 'requests') {
       setActiveTab('requests');
+    } else if (tabParam === 'actions') {
+      setActiveTab('actions');
     }
   }, [session, status, router, searchParams]);
 
@@ -113,6 +116,17 @@ export default function AdminPage() {
                 <i className="fas fa-clipboard-list mr-2"></i>
                 Manage Requests
               </button>
+              <button
+                onClick={() => setActiveTab('actions')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'actions'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <i className="fas fa-history mr-2"></i>
+                Admin Actions
+              </button>
             </nav>
           </div>
 
@@ -122,6 +136,7 @@ export default function AdminPage() {
             {activeTab === 'list' && <GameList refreshTrigger={refreshTrigger} />}
             {activeTab === 'users' && <UserManagement />}
             {activeTab === 'requests' && <RequestManagement />}
+            {activeTab === 'actions' && <AdminActions />}
           </div>
         </div>
     </div>
