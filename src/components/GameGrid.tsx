@@ -19,7 +19,7 @@ interface GameCardState {
 
 const GameGrid = ({ onBorrowClick }: GameGridProps) => {
   const { games, loading, error, refetch, applyFilters: hookApplyFilters, filteringMode } = useGames();
-  const { borrowGame } = useLoans();
+  const { loans, returnRequests, borrowGame } = useLoans();
   const { data: session } = useSession();
   const [gameStates, setGameStates] = useState<GameCardState>({});
   const [isFiltering, setIsFiltering] = useState(false);
@@ -156,6 +156,8 @@ const GameGrid = ({ onBorrowClick }: GameGridProps) => {
           <GameCard 
             key={game.id} 
             game={gameStates[game.id] || game} 
+            loans={loans}
+            returnRequests={returnRequests}
             onBorrowClick={handleGameCardBorrow}
             onUpdate={handleGameUpdate}
           />

@@ -1,11 +1,12 @@
 import { Game } from '@/types/game';
 import { memo } from 'react';
 import { useSession } from 'next-auth/react';
-import { useLoans } from '@/hooks/useLoans';
 import { getDisplayStatus } from '@/lib/stats';
 
 interface GameCardProps {
   game: Game;
+  loans?: any[];
+  returnRequests?: any[];
   onBorrowClick?: (game: Game) => void;
   onUpdate?: (updatedGame: Game) => void;
 }
@@ -21,9 +22,8 @@ const getPlatformIcon = (platform: string) => {
 };
 
 // Simplified GameCard that just emits borrow events
-const GameCard = ({ game, onBorrowClick, onUpdate }: GameCardProps) => {
+const GameCard = ({ game, loans = [], returnRequests = [], onBorrowClick, onUpdate }: GameCardProps) => {
   const { data: session } = useSession();
-  const { loans, returnRequests } = useLoans();
 
   // Check if this game has a pending loan or return in progress
   const hasPendingLoan = loans.some((loan: any) => {
