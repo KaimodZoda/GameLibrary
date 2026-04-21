@@ -19,7 +19,7 @@ interface GameGridProps {
 }
 
 const GameGrid = ({ isPublic = false, showAllLoans = false }: GameGridProps) => {
-  const { games, loading, error, refetch, applyFilters: hookApplyFilters, filteringMode } = useGames();
+  const { games, loading, error, refetch, applyFilters: hookApplyFilters, filteringMode, pagination } = useGames();
   // Skip fetching user loans when showing all loans to avoid redundant API calls
   const { loans: userLoans, returnRequests: userReturnRequests, borrowGame } = useLoans(showAllLoans);
   const { data: session } = useSession();
@@ -156,7 +156,7 @@ const GameGrid = ({ isPublic = false, showAllLoans = false }: GameGridProps) => 
       {/* Filtering Mode Indicator */}
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-gray-600">
-          Showing {games.length} games
+          Showing {games.length} of {pagination.total} games (Page {pagination.page} of {pagination.totalPages})
           {isFiltering && (
             <span className="ml-2 text-indigo-600">
               <i className="fas fa-spinner fa-spin mr-1"></i>
@@ -167,8 +167,8 @@ const GameGrid = ({ isPublic = false, showAllLoans = false }: GameGridProps) => 
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">Filtering:</span>
           <span className={`text-xs px-2 py-1 rounded-full ${
-            filteringMode === 'client' 
-              ? 'bg-green-100 text-green-800' 
+            filteringMode === 'client'
+              ? 'bg-green-100 text-green-800'
               : 'bg-blue-100 text-blue-800'
           }`}>
             {filteringMode === 'client' ? 'Client-side' : 'Server-side'}
@@ -212,19 +212,39 @@ const GameGrid = ({ isPublic = false, showAllLoans = false }: GameGridProps) => 
       )}
 
       {/* Pagination */}
-      <div className="flex justify-center mt-8">
-        <nav className="flex space-x-2">
-          <button className="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-            <i className="fas fa-chevron-left text-gray-900"></i>
-          </button>
-          <button className="px-3 py-2 bg-indigo-600 text-white rounded-md">1</button>
-          <button className="px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50">2</button>
-          <button className="px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50">3</button>
-          <button className="px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50">
-            <i className="fas fa-chevron-right text-gray-900"></i>
-          </button>
-        </nav>
-      </div>
+      {pagination.totalPages > 1 && (
+        <div className="flex justify-center mt-8">
+          <nav className="flex items-center space-x-2">
+            <button
+              onClick={pagination.prevPage}
+              disabled={pagination.page === 1}
+              className="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i className="fas fa-chevron-left text-gray-900"></i>
+            </button>
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => pagination.setPage(pageNum)}
+                className={`px-3 py-2 rounded-md ${
+                  pageNum === pagination.page
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+            <button
+              onClick={pagination.nextPage}
+              disabled={pagination.page === pagination.totalPages}
+              className="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i className="fas fa-chevron-right text-gray-900"></i>
+            </button>
+          </nav>
+        </div>
+      )}
     </>
   );
 };

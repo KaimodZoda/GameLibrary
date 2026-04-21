@@ -7,6 +7,8 @@ export async function GET(request: Request) {
     const platform = searchParams.get('platform');
     const genre = searchParams.get('genre');
     const search = searchParams.get('search');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '12');
 
     // Build where clause for Prisma
     const where: any = {};
@@ -28,24 +30,33 @@ export async function GET(request: Request) {
       };
     }
 
+    // Get total count for pagination
+    const total = await prisma.game.count({ where });
+
+    // Get paginated games
     const games = await prisma.game.findMany({
       where,
       orderBy: {
         createdAt: 'desc'
-      }
+      },
+      skip: (page - 1) * limit,
+      take: limit
     });
 
     return NextResponse.json({
       success: true,
       data: games,
-      total: games.length
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
     console.error('Error fetching games:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Failed to fetch games' 
+      {
+        success: false,
+        message: 'Failed to fetch games'
       },
       { status: 500 }
     );
