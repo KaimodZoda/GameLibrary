@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { isLoanOverdue } from '@/lib/stats';
 
 type LoanRequest = {
   id: number;
@@ -143,11 +144,15 @@ export default function RequestManagementUnified() {
   // Get display status similar to my-loans page
   const getDisplayStatus = (loan: LoanRequest, returnRequest?: ReturnRequest) => {
     const returnReq = returns.find(req => req.loanId === loan.id);
-    
+
     if (loan.status === 'pending') return 'Borrow Pending';
     if (loan.status === 'approved') return 'Borrow Approved';
     if (loan.status === 'completed') {
-      if (!returnReq) return 'Active';
+      if (!returnReq) {
+        // Check if overdue
+        if (isLoanOverdue(loan.dueDate)) return 'Overdue';
+        return 'Active';
+      }
       if (returnReq.status === 'pending') return 'Return Pending';
       if (returnReq.status === 'approved') return 'Returning';
       if (returnReq.status === 'completed') return 'Returned';
@@ -160,6 +165,7 @@ export default function RequestManagementUnified() {
       case 'Borrow Pending': return 'bg-yellow-100 text-yellow-800';
       case 'Borrow Approved': return 'bg-blue-100 text-blue-800';
       case 'Active': return 'bg-green-100 text-green-800';
+      case 'Overdue': return 'bg-red-100 text-red-800';
       case 'Return Pending': return 'bg-orange-100 text-orange-800';
       case 'Returning': return 'bg-purple-100 text-purple-800';
       case 'Returned': return 'bg-gray-100 text-gray-800';

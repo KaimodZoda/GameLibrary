@@ -1,12 +1,25 @@
 // Shared utility functions for stats calculations
 
+// Helper function to check if a loan is overdue (compares dates only, not time)
+export const isLoanOverdue = (dueDate: string | Date): boolean => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  return due < today;
+};
+
 export const getDisplayStatus = (loan: any, returnRequests?: any[]) => {
   const returnRequest = returnRequests?.find(req => req.loanId === loan.id);
-  
+
   if (loan.status === 'pending') return 'Borrow Pending';
   if (loan.status === 'approved') return 'Borrow Approved';
   if (loan.status === 'completed') {
-    if (!returnRequest) return 'Active';
+    if (!returnRequest) {
+      // Check if overdue
+      if (isLoanOverdue(loan.dueDate)) return 'Overdue';
+      return 'Active';
+    }
     if (returnRequest.status === 'pending') return 'Return Pending';
     if (returnRequest.status === 'approved') return 'Returning';
     if (returnRequest.status === 'completed') return 'Returned';
@@ -27,8 +40,7 @@ export const calculateStats = (loans: any[], returnRequests?: any[]) => {
 
   const overdueLoans = loans.filter(loan => {
     const status = getDisplayStatus(loan, returnRequests);
-    const isOverdue = new Date(loan.dueDate) < new Date();
-    return (status === 'Active') && isOverdue;
+    return (status === 'Active') && isLoanOverdue(loan.dueDate);
   });
 
   const returnedLoans = loans.filter(loan => {
