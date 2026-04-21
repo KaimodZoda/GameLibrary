@@ -12,8 +12,9 @@ export default function MyLoans() {
   const { data: session } = useSession();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showReturnConfirmModal, setShowReturnConfirmModal] = useState(false);
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
-  const { loans, loading, error, refetch, returnGame, returnRequests } = useLoans();
+  const { loans, loading, error, refetch, returnGame, returnRequests, cancelLoan } = useLoans();
   const [stats, setStats] = useState({
     totalGames: 0,
     availableGames: 0,
@@ -89,6 +90,36 @@ export default function MyLoans() {
 
   const handleCancelReturn = () => {
     setShowReturnConfirmModal(false);
+    setSelectedLoan(null);
+  };
+
+  const handleCancelClick = (loan: any) => {
+    setSelectedLoan(loan);
+    setShowCancelConfirmModal(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!selectedLoan || !cancelLoan) return;
+
+    const result = await cancelLoan(selectedLoan.id);
+    if (result.success) {
+      setShowCancelConfirmModal(false);
+      setSelectedLoan(null);
+      // Refetch stats to update the numbers
+      const userId = session?.user?.id;
+      const url = userId ? `/api/stats?userId=${userId}` : '/api/stats';
+      const response = await fetch(url);
+      if (response.ok) {
+        const statsResult = await response.json();
+        if (statsResult.success) {
+          setStats(statsResult.data);
+        }
+      }
+    }
+  };
+
+  const handleCancelCancelModal = () => {
+    setShowCancelConfirmModal(false);
     setSelectedLoan(null);
   };
 
@@ -209,7 +240,20 @@ export default function MyLoans() {
                                   </>
                                 );
                               }
-                              // For other statuses (Borrow Pending, Borrow Approved), show only Details
+                              // For Borrow Pending and Borrow Approved, show Cancel and Details
+                              if (status === 'Borrow Pending' || status === 'Borrow Approved') {
+                                return (
+                                  <>
+                                    <button className="text-red-600 hover:text-red-900 mr-3" onClick={() => handleCancelClick(loan)}>
+                                      Cancel
+                                    </button>
+                                    <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                      Details
+                                    </button>
+                                  </>
+                                );
+                              }
+                              // For other statuses, show only Details
                               return (
                                 <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
                                   Details
@@ -399,38 +443,38 @@ export default function MyLoans() {
       
       {/* Return Confirmation Modal */}
       {showReturnConfirmModal && selectedLoan && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
           onClick={handleCancelReturn}
         >
-          <div 
+          <div
             className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative z-10"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-gray-900">Confirm Return</h3>
-              <button 
+              <button
                 onClick={handleCancelReturn}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <i className="fas fa-times text-xl"></i>
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-2">{selectedLoan.game.title}</h4>
                 <p className="text-sm text-gray-600">{selectedLoan.game.platform}</p>
                 <p className="text-xs text-gray-500">{selectedLoan.game.genre}</p>
               </div>
-              
+
               <div className="bg-yellow-50 border border border-yellow-200 rounded-lg p-3">
                 <p className="text-sm text-yellow-800">
                   <i className="fas fa-exclamation-triangle mr-2"></i>
                   You will be redirected to the return page to complete this process
                 </p>
               </div>
-              
+
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={handleCancelReturn}
@@ -449,7 +493,60 @@ export default function MyLoans() {
           </div>
         </div>
       )}
-      
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirmModal && selectedLoan && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+          onClick={handleCancelCancelModal}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Cancel Loan Request</h3>
+              <button
+                onClick={handleCancelCancelModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-2">{selectedLoan.game.title}</h4>
+                <p className="text-sm text-gray-600">{selectedLoan.game.platform}</p>
+                <p className="text-xs text-gray-500">{selectedLoan.game.genre}</p>
+              </div>
+
+              <div className="bg-red-50 border border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-800">
+                  <i className="fas fa-exclamation-triangle mr-2"></i>
+                  Are you sure you want to cancel this loan request? This action cannot be undone.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleCancelCancelModal}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  No, Keep It
+                </button>
+                <button
+                  onClick={handleConfirmCancel}
+                  className="px-4 py-2 bg-red-600 border border-transparent rounded-md text-white font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  Yes, Cancel Request
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }

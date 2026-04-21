@@ -43,6 +43,7 @@ interface UseLoansReturn {
   refetch: () => void;
   borrowGame: (gameId: number, dueDate?: string) => Promise<{ success: boolean; message: string; data?: any }>;
   returnGame: (loanId: number) => Promise<{ success: boolean; message: string }>;
+  cancelLoan: (loanId: number) => Promise<{ success: boolean; message: string }>;
 }
 
 export const useLoans = (skipFetch = false): UseLoansReturn => {
@@ -124,19 +125,41 @@ export const useLoans = (skipFetch = false): UseLoansReturn => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           returnMethod: 'in-person', // Default return method
           notes: 'Returned via My Loans page'
         })
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         // Refetch loans to update the list
         await fetchLoans();
       }
-      
+
+      return result;
+    } catch (err) {
+      return {
+        success: false,
+        message: 'Network error'
+      };
+    }
+  };
+
+  const cancelLoan = async (loanId: number) => {
+    try {
+      const response = await fetch(`/api/loans/${loanId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Refetch loans to update the list
+        await fetchLoans();
+      }
+
       return result;
     } catch (err) {
       return {
@@ -161,6 +184,7 @@ export const useLoans = (skipFetch = false): UseLoansReturn => {
     error,
     refetch: fetchLoans,
     borrowGame,
-    returnGame
+    returnGame,
+    cancelLoan
   };
 };
