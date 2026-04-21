@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth, getUserId, isAdmin } from '@/lib/auth';
+import { createReturnSchema } from '@/lib/validations';
+import { ZodError } from 'zod';
 
 const prisma = new PrismaClient();
 
@@ -58,18 +60,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { loanId, returnMethod, trackingNumber, returnNotes, estimatedReturnDate } = body;
 
-    if (!loanId) {
-      return NextResponse.json(
-        { error: 'Loan ID is required' },
-        { status: 400 }
-      );
-    }
+    // Validate request body
+    const validatedData = createReturnSchema.parse(body);
+    const { loanId, returnMethod, trackingNumber, returnNotes, estimatedReturnDate } = validatedData;
 
     // Check if return request already exists for this loan
     const existingReturn = await prisma.return.findFirst({
-      where: { loanId: parseInt(loanId) }
+      where: { loanId }
     });
 
     if (existingReturn) {
@@ -82,7 +80,7 @@ export async function POST(request: NextRequest) {
     // Create new return request
     const newReturn = await prisma.return.create({
       data: {
-        loanId: parseInt(loanId),
+        loanId,
         returnMethod,
         trackingNumber,
         returnNotes,
@@ -92,6 +90,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newReturn, { status: 201 });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Validation error',
+          errors: error.issues
+        },
+        { status: 400 }
+      );
+    }
     console.error('Error creating return request:', error);
     return NextResponse.json(
       { error: 'Failed to create return request' },

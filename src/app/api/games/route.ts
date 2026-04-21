@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createGameSchema, gamesQuerySchema } from '@/lib/validations';
+import { ZodError } from 'zod';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const platform = searchParams.get('platform');
-    const genre = searchParams.get('genre');
-    const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '12');
+
+    // Validate query parameters (filter out null values)
+    const queryParams = gamesQuerySchema.parse({
+      platform: searchParams.get('platform') || undefined,
+      genre: searchParams.get('genre') || undefined,
+      search: searchParams.get('search') || undefined,
+      page: searchParams.get('page') || '1',
+      limit: searchParams.get('limit') || '12'
+    });
+
+    const { platform, genre, search, page, limit } = queryParams;
 
     // Build where clause for Prisma
     const where: any = {};
@@ -66,36 +74,49 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     // Support both single game and array of games
     const gamesToAdd = Array.isArray(body) ? body : [body];
-    
+
     const results = [];
-    
+
     for (const gameData of gamesToAdd) {
+      // Validate game data
+      const validatedGame = createGameSchema.parse(gameData);
+
       const game = await prisma.game.create({
         data: {
-          title: gameData.title,
-          platform: gameData.platform,
-          genre: gameData.genre,
-          available: gameData.available ?? true,
-          gradient: gameData.gradient || 'from-gray-400 to-gray-500'
+          title: validatedGame.title,
+          platform: validatedGame.platform,
+          genre: validatedGame.genre,
+          available: validatedGame.available ?? true,
+          gradient: validatedGame.gradient || 'from-gray-400 to-gray-500'
         }
       });
       results.push(game);
     }
-    
+
     return NextResponse.json({
       success: true,
       message: `Added ${results.length} game(s) successfully`,
       data: results.length === 1 ? results[0] : results
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Validation error',
+          errors: error.issues
+        },
+        { status: 400 }
+      );
+    }
     console.error('Error adding games:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Failed to add games' 
+      {
+        success: false,
+        message: 'Failed to add games'
       },
       { status: 500 }
     );

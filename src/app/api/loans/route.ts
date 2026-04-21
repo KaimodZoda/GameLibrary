@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
 import { requireAuth, getUserId } from '@/lib/auth';
+import { createLoanSchema } from '@/lib/validations';
+import { ZodError } from 'zod';
 
 // GET /api/loans - Get current user's loans
 export async function GET(request: NextRequest) {
@@ -76,20 +78,14 @@ export async function POST(request: NextRequest) {
     const userId = getUserId(authResult);
     const body = await request.json();
     console.log('Loan request body:', body); // Debug log
-    
-    const { gameId, dueDate } = body;
 
-    if (!gameId || !dueDate) {
-      console.log('Missing required fields:', { gameId, dueDate }); // Debug log
-      return NextResponse.json(
-        { success: false, message: 'Game ID and due date are required' },
-        { status: 400 }
-      );
-    }
+    // Validate request body
+    const validatedData = createLoanSchema.parse(body);
+    const { gameId, dueDate } = validatedData;
 
     // Check if game exists and is available
     const game = await prisma.game.findUnique({
-      where: { id: parseInt(gameId) }
+      where: { id: gameId }
     });
 
     console.log('Game found:', game); // Debug log
@@ -159,7 +155,7 @@ export async function POST(request: NextRequest) {
     const loan = await prisma.loan.create({
       data: {
         userId,
-        gameId: parseInt(gameId),
+        gameId,
         dateBorrowed: new Date(),
         dueDate: calculatedDueDate
       }
@@ -167,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     // Update game availability
     await prisma.game.update({
-      where: { id: parseInt(gameId) },
+      where: { id: gameId },
       data: { available: false }
     });
 
@@ -180,6 +176,16 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Validation error',
+          errors: error.issues
+        },
+        { status: 400 }
+      );
+    }
     console.error('Error creating loan:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to borrow game' },
