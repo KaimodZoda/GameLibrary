@@ -92,9 +92,9 @@ export default function RequestManagementUnified() {
     fetchData();
   }, []);
 
-  const handleLoanAction = async (action: 'approve' | 'pickup') => {
+  const handleLoanAction = async (action: 'approve' | 'pickup' | 'reject') => {
     if (!selectedLoan) return;
-    
+
     setIsProcessing(true);
     try {
       const response = await fetch(`/api/admin/loans/${selectedLoan.id}/${action}`, {
@@ -102,7 +102,7 @@ export default function RequestManagementUnified() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: actionNotes })
       });
-      
+
       if (response.ok) {
         await fetchLoans();
         setShowLoanModal(false);
@@ -147,6 +147,7 @@ export default function RequestManagementUnified() {
 
     if (loan.status === 'pending') return 'Borrow Pending';
     if (loan.status === 'approved') return 'Borrow Approved';
+    if (loan.status === 'rejected') return 'Rejected';
     if (loan.status === 'completed') {
       if (!returnReq) {
         // Check if overdue
@@ -166,6 +167,7 @@ export default function RequestManagementUnified() {
       case 'Borrow Approved': return 'bg-blue-100 text-blue-800';
       case 'Active': return 'bg-green-100 text-green-800';
       case 'Overdue': return 'bg-red-100 text-red-800';
+      case 'Rejected': return 'bg-gray-300 text-gray-800';
       case 'Return Pending': return 'bg-orange-100 text-orange-800';
       case 'Returning': return 'bg-purple-100 text-purple-800';
       case 'Returned': return 'bg-gray-100 text-gray-800';
@@ -176,10 +178,10 @@ export default function RequestManagementUnified() {
   // Get available actions based on status
   const getAvailableActions = (loan: LoanRequest, returnRequest?: ReturnRequest) => {
     const displayStatus = getDisplayStatus(loan, returnRequest);
-    
+
     switch (displayStatus) {
       case 'Borrow Pending':
-        return { type: 'loan', actions: ['approve'] };
+        return { type: 'loan', actions: ['approve', 'reject'] };
       case 'Borrow Approved':
         return { type: 'loan', actions: ['pickup'] };
       case 'Return Pending':
@@ -192,6 +194,7 @@ export default function RequestManagementUnified() {
   };
 
   const pendingLoans = loans.filter(loan => loan.status === 'pending');
+  const rejectedLoans = loans.filter(loan => loan.status === 'rejected');
   const approvedLoans = loans.filter(loan => loan.status === 'approved');
   const pendingReturns = returns.filter(ret => ret.status === 'pending');
   const approvedReturns = returns.filter(ret => ret.status === 'approved');
@@ -272,7 +275,7 @@ export default function RequestManagementUnified() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {loans.map((loan) => {
+              {loans.filter(loan => loan.status !== 'rejected').map((loan) => {
                 const returnRequest = returns.find(req => req.loanId === loan.id);
                 const displayStatus = getDisplayStatus(loan, returnRequest);
                 const availableActions = getAvailableActions(loan, returnRequest);
@@ -299,6 +302,14 @@ export default function RequestManagementUnified() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      {availableActions.type === 'loan' && availableActions.actions.includes('reject') && (
+                        <button
+                          onClick={() => { setSelectedLoan(loan); setShowLoanModal(true); }}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Reject
+                        </button>
+                      )}
                       {availableActions.type === 'loan' && availableActions.actions.includes('approve') && (
                         <button
                           onClick={() => { setSelectedLoan(loan); setShowLoanModal(true); }}
@@ -391,13 +402,22 @@ export default function RequestManagementUnified() {
                 Cancel
               </button>
               {selectedLoan.status === 'pending' ? (
-                <button
-                  onClick={() => handleLoanAction('approve')}
-                  disabled={isProcessing}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-                >
-                  {isProcessing ? 'Processing...' : 'Approve'}
-                </button>
+                <>
+                  <button
+                    onClick={() => handleLoanAction('reject')}
+                    disabled={isProcessing}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {isProcessing ? 'Processing...' : 'Reject'}
+                  </button>
+                  <button
+                    onClick={() => handleLoanAction('approve')}
+                    disabled={isProcessing}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {isProcessing ? 'Processing...' : 'Approve'}
+                  </button>
+                </>
               ) : (
                 <button
                   onClick={() => handleLoanAction('pickup')}

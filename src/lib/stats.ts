@@ -14,6 +14,7 @@ export const getDisplayStatus = (loan: any, returnRequests?: any[]) => {
 
   if (loan.status === 'pending') return 'Borrow Pending';
   if (loan.status === 'approved') return 'Borrow Approved';
+  if (loan.status === 'rejected') return 'Rejected';
   if (loan.status === 'completed') {
     if (!returnRequest) {
       // Check if overdue
