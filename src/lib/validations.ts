@@ -61,6 +61,10 @@ export const adminActionSchema = z.object({
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional()
 });
 
+export const adminNotesSchema = z.object({
+  notes: z.string().max(500, 'Notes must be less than 500 characters').optional()
+});
+
 // User validation schemas
 export const createUserSchema = z.object({
   email: z.email('Invalid email address'),

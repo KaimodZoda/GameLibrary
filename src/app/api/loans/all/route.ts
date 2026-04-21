@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
-import { requireAuth, getUserId } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 // GET /api/loans/all - Get all loans (for global game status display)
 export async function GET(request: NextRequest) {

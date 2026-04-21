@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { adminNotesSchema } from '@/lib/validations';
+import { ZodError } from 'zod';
 
 // PUT /api/admin/loans/:id/approve - Approve a loan request
 export async function PUT(
@@ -17,7 +19,11 @@ export async function PUT(
     const adminId = parseInt(authResult.sub!);
     const resolvedParams = await params;
     const loanId = parseInt(resolvedParams.id);
-    const { notes } = await request.json();
+
+    // Validate request body
+    const body = await request.json();
+    const validatedData = adminNotesSchema.parse(body);
+    const { notes } = validatedData;
 
     // Check if loan exists and is pending
     const loan = await prisma.loan.findUnique({
@@ -64,6 +70,16 @@ export async function PUT(
       data: updatedLoan
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Validation error',
+          errors: error.issues
+        },
+        { status: 400 }
+      );
+    }
     console.error('Error approving loan:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to approve loan' },

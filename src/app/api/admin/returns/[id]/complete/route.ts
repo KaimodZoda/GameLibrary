@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { adminNotesSchema } from '@/lib/validations';
+import { ZodError } from 'zod';
 
 // PUT /api/admin/returns/:id/complete - Confirm return completion
 export async function PUT(
@@ -17,7 +19,11 @@ export async function PUT(
     const adminId = parseInt(authResult.sub!);
     const resolvedParams = await params;
     const returnId = parseInt(resolvedParams.id);
-    const { notes } = await request.json();
+
+    // Validate request body
+    const body = await request.json();
+    const validatedData = adminNotesSchema.parse(body);
+    const { notes } = validatedData;
 
     // Check if return request exists and is approved
     const returnRequest = await prisma.return.findUnique({
@@ -85,6 +91,16 @@ export async function PUT(
       data: updatedReturn
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Validation error',
+          errors: error.issues
+        },
+        { status: 400 }
+      );
+    }
     console.error('Error completing return:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to complete return' },

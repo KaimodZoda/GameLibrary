@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
 import { requireAuth, getUserId } from '@/lib/auth';
+import { createReturnSchema } from '@/lib/validations';
+import { ZodError } from 'zod';
 
 // PUT /api/loans/[id]/return - Return a borrowed game
 export async function PUT(
@@ -49,7 +51,10 @@ export async function PUT(
       );
     }
 
-    const { returnMethod, trackingNumber, notes } = await request.json();
+    // Validate request body
+    const body = await request.json();
+    const validatedData = createReturnSchema.parse(body);
+    const { returnMethod, trackingNumber, returnNotes, estimatedReturnDate } = validatedData;
 
     // Create return record with pending status
     const returnRecord = await prisma.return.create({
@@ -57,7 +62,8 @@ export async function PUT(
         loanId,
         returnMethod,
         trackingNumber,
-        returnNotes: notes,
+        returnNotes,
+        estimatedReturnDate: estimatedReturnDate ? new Date(estimatedReturnDate) : null,
         status: 'pending'
       }
     });
@@ -72,6 +78,16 @@ export async function PUT(
       }
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Validation error',
+          errors: error.issues
+        },
+        { status: 400 }
+      );
+    }
     console.error('Error returning loan:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to return game' },
