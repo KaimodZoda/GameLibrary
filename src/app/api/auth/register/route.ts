@@ -3,9 +3,33 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { createUserSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting: 5 requests per 15 minutes per IP
+    const ip = getClientIp(request);
+    const rateLimitResult = rateLimit(ip, 5, 15 * 60 * 1000);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Too many registration attempts. Please try again later.',
+          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString()
+          }
+        }
+      );
+    }
+
     const body = await request.json();
 
     // Validate request body with Zod

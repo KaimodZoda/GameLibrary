@@ -3,8 +3,9 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
-// Rate limiting store (in production, use Redis/Database)
+// Rate limiting store for login attempts (in production, use Redis/Database)
 const loginAttempts = new Map<string, { count: number; resetTime: number }>();
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
@@ -12,12 +13,12 @@ const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 const isAccountLocked = (email: string): boolean => {
   const attempts = loginAttempts.get(email);
   if (!attempts) return false;
-  
+
   if (Date.now() > attempts.resetTime) {
     loginAttempts.delete(email);
     return false;
   }
-  
+
   return attempts.count >= MAX_ATTEMPTS;
 };
 
@@ -39,13 +40,21 @@ const handler = NextAuth({
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
         const email = credentials.email.toLowerCase().trim();
-        
+
+        // IP-based rate limiting: 10 login attempts per 15 minutes
+        const ip = req?.headers ? getClientIp(req as any) : 'unknown';
+        const rateLimitResult = rateLimit(`login:${ip}`, 10, 15 * 60 * 1000);
+
+        if (!rateLimitResult.success) {
+          throw new Error('Too many login attempts from this IP. Please try again later.');
+        }
+
         // Check account lockout
         if (isAccountLocked(email)) {
           throw new Error('Account temporarily locked due to too many failed attempts. Please try again later.');
