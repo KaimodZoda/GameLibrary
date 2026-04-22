@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth, getUserId } from '@/lib/auth';
 import { createReturnSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
+import { sanitizeInput } from '@/lib/sanitize';
 
 // PUT /api/loans/[id]/return - Return a borrowed game
 export async function PUT(
@@ -56,13 +57,16 @@ export async function PUT(
     const validatedData = createReturnSchema.parse(body);
     const { returnMethod, trackingNumber, returnNotes, estimatedReturnDate } = validatedData;
 
+    // Sanitize returnNotes to prevent XSS
+    const sanitizedReturnNotes = returnNotes ? sanitizeInput(returnNotes) : undefined;
+
     // Create return record with pending status
     const returnRecord = await prisma.return.create({
       data: {
         loanId,
         returnMethod,
         trackingNumber,
-        returnNotes,
+        returnNotes: sanitizedReturnNotes,
         estimatedReturnDate: estimatedReturnDate ? new Date(estimatedReturnDate) : null,
         status: 'pending'
       }

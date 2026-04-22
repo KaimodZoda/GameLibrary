@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { adminNotesSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
+import { sanitizeInput } from '@/lib/sanitize';
 
 // PUT /api/admin/returns/:id/complete - Confirm return completion
 export async function PUT(
@@ -24,6 +25,9 @@ export async function PUT(
     const body = await request.json();
     const validatedData = adminNotesSchema.parse(body);
     const { notes } = validatedData;
+
+    // Sanitize notes to prevent XSS
+    const sanitizedNotes = notes ? sanitizeInput(notes) : undefined;
 
     // Check if return request exists and is approved
     const returnRequest = await prisma.return.findUnique({
@@ -78,10 +82,10 @@ export async function PUT(
     // Create admin action record
     await prisma.adminAction.create({
       data: {
-        returnId: returnId,
         adminId,
+        returnId,
         action: 'return_completed',
-        notes: notes || 'Return completed, game available again'
+        notes: sanitizedNotes || 'Return completed, game available again'
       }
     });
 

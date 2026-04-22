@@ -47,12 +47,18 @@ const handler = NextAuth({
 
         const email = credentials.email.toLowerCase().trim();
 
-        // IP-based rate limiting: 10 login attempts per 15 minutes
-        const ip = req?.headers ? getClientIp(req as any) : 'unknown';
-        const rateLimitResult = rateLimit(`login:${ip}`, 10, 15 * 60 * 1000);
+        // Skip rate limiting for admin and test user in development
+        const isTestUser = email === 'user@gamelibrary.com' || email.includes('admin');
+        const isDevelopment = process.env.NODE_ENV === 'development';
 
-        if (!rateLimitResult.success) {
-          throw new Error('Too many login attempts from this IP. Please try again later.');
+        if (!isTestUser || !isDevelopment) {
+          // IP-based rate limiting: 10 login attempts per 15 minutes
+          const ip = req?.headers ? getClientIp(req as any) : 'unknown';
+          const rateLimitResult = rateLimit(`login:${ip}`, 10, 15 * 60 * 1000);
+
+          if (!rateLimitResult.success) {
+            throw new Error('Too many login attempts from this IP. Please try again later.');
+          }
         }
 
         // Check account lockout

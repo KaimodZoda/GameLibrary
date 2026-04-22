@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { adminNotesSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
+import { sanitizeInput } from '@/lib/sanitize';
 
 // PUT /api/admin/loans/:id/pickup - Confirm user pickup
 export async function PUT(
@@ -24,6 +25,9 @@ export async function PUT(
     const body = await request.json();
     const validatedData = adminNotesSchema.parse(body);
     const { notes } = validatedData;
+
+    // Sanitize notes to prevent XSS
+    const sanitizedNotes = notes ? sanitizeInput(notes) : undefined;
 
     // Check if loan exists and is approved
     const loan = await prisma.loan.findUnique({
@@ -57,10 +61,10 @@ export async function PUT(
     // Create admin action record
     await prisma.adminAction.create({
       data: {
-        requestId: loanId,
         adminId,
-        action: 'pickup_confirmed',
-        notes: notes || 'User pickup confirmed'
+        loanId,
+        action: 'loan_picked_up',
+        notes: sanitizedNotes || 'User pickup confirmed'
       }
     });
 

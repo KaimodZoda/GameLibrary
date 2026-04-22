@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { requireAuth, getUserId, isAdmin } from '@/lib/auth';
 import { createReturnSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
+import { sanitizeInput } from '@/lib/sanitize';
 
 const prisma = new PrismaClient();
 
@@ -65,6 +66,9 @@ export async function POST(request: NextRequest) {
     const validatedData = createReturnSchema.parse(body);
     const { loanId, returnMethod, trackingNumber, returnNotes, estimatedReturnDate } = validatedData;
 
+    // Sanitize returnNotes to prevent XSS
+    const sanitizedReturnNotes = returnNotes ? sanitizeInput(returnNotes) : undefined;
+
     // Check if return request already exists for this loan
     const existingReturn = await prisma.return.findFirst({
       where: { loanId }
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
         loanId,
         returnMethod,
         trackingNumber,
-        returnNotes,
+        returnNotes: sanitizedReturnNotes,
         estimatedReturnDate: estimatedReturnDate ? new Date(estimatedReturnDate) : null
       }
     });
