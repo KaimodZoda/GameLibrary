@@ -44,6 +44,12 @@ const GameCard = ({ game, loans = [], returnRequests = [], onBorrowClick, onUpda
     return loan.gameId === game.id && (status === 'Active' || status === 'Borrow Approved');
   });
 
+  // Check if this game has an overdue loan
+  const hasOverdueLoan = loans.some((loan: any) => {
+    const status = getDisplayStatus(loan, returnRequests);
+    return loan.gameId === game.id && status === 'Overdue';
+  });
+
   // Check if current user has an active loan for this game (for "Active" status display)
   const hasUserActiveLoan = loans.some((loan: any) => {
     const status = getDisplayStatus(loan, returnRequests);
@@ -94,66 +100,72 @@ const GameCard = ({ game, loans = [], returnRequests = [], onBorrowClick, onUpda
             </span>
           ) : (
             <span className={`font-semibold ${
-              hasPendingLoan 
-                ? 'text-orange-600' 
+              hasPendingLoan
+                ? 'text-orange-600'
                 : hasReturnInProgress
                   ? 'text-purple-600'
-                  : showGlobalStatus
-                    ? hasUserActiveLoan
-                      ? 'text-green-600'
-                      : hasActiveLoan
-                        ? 'text-red-600'
-                        : game.available
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                    : game.available 
-                      ? 'text-green-600' 
-                      : 'text-red-600'
-            }`}>
-              <i className={`fas ${
-                hasPendingLoan 
-                  ? 'fa-hourglass-half' 
-                  : hasReturnInProgress
-                    ? 'fa-spinner'
+                  : hasOverdueLoan
+                    ? 'text-red-600'
                     : showGlobalStatus
                       ? hasUserActiveLoan
-                        ? 'fa-check-circle'
+                        ? 'text-green-600'
                         : hasActiveLoan
-                          ? 'fa-times-circle'
+                          ? 'text-red-600'
                           : game.available
-                            ? 'fa-check-circle'
-                            : 'fa-times-circle'
-                      : game.available 
-                        ? 'fa-check-circle' 
-                        : 'fa-times-circle'
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                      : game.available
+                        ? 'text-green-600'
+                        : 'text-red-600'
+            }`}>
+              <i className={`fas ${
+                hasPendingLoan
+                  ? 'fa-hourglass-half'
+                  : hasReturnInProgress
+                    ? 'fa-spinner'
+                    : hasOverdueLoan
+                      ? 'fa-exclamation-triangle'
+                      : showGlobalStatus
+                        ? hasUserActiveLoan
+                          ? 'fa-check-circle'
+                          : hasActiveLoan
+                            ? 'fa-times-circle'
+                            : game.available
+                              ? 'fa-check-circle'
+                              : 'fa-times-circle'
+                        : game.available
+                          ? 'fa-check-circle'
+                          : 'fa-times-circle'
               } mr-1`} aria-hidden="true"></i>
-              {hasPendingLoan ? 'Pending' : hasReturnInProgress ? 'Return in Progress' : showGlobalStatus ? (hasUserActiveLoan ? 'Active' : hasActiveLoan ? 'Borrowed' : game.available ? 'Available' : 'Borrowed') : (game.available ? 'Available' : 'Borrowed')}
+              {hasPendingLoan ? 'Pending' : hasReturnInProgress ? 'Return in Progress' : hasOverdueLoan ? 'Overdue' : showGlobalStatus ? (hasUserActiveLoan ? 'Active' : hasActiveLoan ? 'Borrowed' : game.available ? 'Available' : 'Borrowed') : (game.available ? 'Available' : 'Borrowed')}
             </span>
           )}
-          <button 
+          <button
             className={`px-3 py-1 rounded text-sm ${
               isPublic
                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                : hasPendingLoan 
+                : hasPendingLoan
                   ? 'bg-orange-600 text-white cursor-not-allowed'
                   : hasReturnInProgress
                     ? 'bg-purple-600 text-white cursor-not-allowed'
-                    : showGlobalStatus
-                      ? hasUserActiveLoan
-                        ? 'bg-green-600 text-white cursor-not-allowed'
-                        : hasActiveLoan
-                          ? 'bg-gray-400 text-white cursor-not-allowed'
-                          : game.available
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                            : 'bg-gray-400 text-white cursor-not-allowed'
-                      : game.available 
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                        : 'bg-gray-400 text-white cursor-not-allowed'
+                    : hasOverdueLoan
+                      ? 'bg-red-600 text-white cursor-not-allowed'
+                      : showGlobalStatus
+                        ? hasUserActiveLoan
+                          ? 'bg-green-600 text-white cursor-not-allowed'
+                          : hasActiveLoan
+                            ? 'bg-gray-400 text-white cursor-not-allowed'
+                            : game.available
+                              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                              : 'bg-gray-400 text-white cursor-not-allowed'
+                        : game.available
+                          ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                          : 'bg-gray-400 text-white cursor-not-allowed'
             }`}
-            disabled={isPublic ? false : (hasPendingLoan || hasReturnInProgress || (showGlobalStatus ? hasActiveLoan || !game.available : !game.available))}
+            disabled={isPublic ? false : (hasPendingLoan || hasReturnInProgress || hasOverdueLoan || (showGlobalStatus ? hasActiveLoan || !game.available : !game.available))}
             onClick={handleBorrow}
           >
-            {isPublic ? 'Book now!' : hasPendingLoan ? 'Pending' : hasReturnInProgress ? 'Return in Progress' : showGlobalStatus ? (hasUserActiveLoan ? 'Active' : hasActiveLoan ? 'Unavailable' : game.available ? 'Borrow' : 'Unavailable') : (game.available ? 'Borrow' : 'Unavailable')}
+            {isPublic ? 'Book now!' : hasPendingLoan ? 'Pending' : hasReturnInProgress ? 'Return in Progress' : hasOverdueLoan ? 'Overdue' : showGlobalStatus ? (hasUserActiveLoan ? 'Active' : hasActiveLoan ? 'Unavailable' : game.available ? 'Borrow' : 'Unavailable') : (game.available ? 'Borrow' : 'Unavailable')}
           </button>
         </div>
       </div>

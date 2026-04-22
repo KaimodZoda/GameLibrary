@@ -34,6 +34,12 @@ export const calculateStats = (loans: any[], returnRequests?: any[]) => {
     return status === 'Active' || status === 'Borrow Approved';
   });
 
+  // Borrowed includes all non-returned loans (active + overdue + return in progress)
+  const borrowedLoans = loans.filter(loan => {
+    const status = getDisplayStatus(loan, returnRequests);
+    return status === 'Active' || status === 'Borrow Approved' || status === 'Overdue';
+  });
+
   const pendingLoans = loans.filter(loan => {
     const status = getDisplayStatus(loan, returnRequests);
     return status === 'Borrow Pending';
@@ -41,7 +47,7 @@ export const calculateStats = (loans: any[], returnRequests?: any[]) => {
 
   const overdueLoans = loans.filter(loan => {
     const status = getDisplayStatus(loan, returnRequests);
-    return (status === 'Active') && isLoanOverdue(loan.dueDate);
+    return status === 'Overdue';
   });
 
   const returnedLoans = loans.filter(loan => {
@@ -56,6 +62,7 @@ export const calculateStats = (loans: any[], returnRequests?: any[]) => {
 
   return {
     activeLoans: activeLoans.length,
+    borrowedLoans: borrowedLoans.length,
     pendingLoans: pendingLoans.length,
     overdueLoans: overdueLoans.length,
     returnedLoans: returnedLoans.length,

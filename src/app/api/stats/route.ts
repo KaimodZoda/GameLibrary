@@ -47,8 +47,8 @@ export async function GET(request: NextRequest) {
       prisma.game.count(),
       prisma.game.count({ where: { available: true } })
     ]);
-    
-    const borrowedGames = stats.activeLoans;
+
+    const borrowedGames = stats.borrowedLoans || stats.activeLoans;
 
     return NextResponse.json({
       success: true,
