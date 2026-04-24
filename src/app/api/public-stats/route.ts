@@ -16,6 +16,10 @@ export async function GET(request: NextRequest) {
         totalGames,
         availableGames,
       }
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' // 2 min cache
+      }
     });
   } catch (error) {
     console.error('Error fetching public stats:', error);

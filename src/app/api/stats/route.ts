@@ -50,6 +50,12 @@ export async function GET(request: NextRequest) {
 
     const borrowedGames = stats.borrowedLoans || stats.activeLoans;
 
+    // Cache headers: longer for global stats, shorter for user-specific
+    const isGlobalStats = !currentUserId;
+    const cacheControl = isGlobalStats
+      ? 'public, s-maxage=60, stale-while-revalidate=120' // 1 min global stats
+      : 'private, s-maxage=30, stale-while-revalidate=60'; // 30 sec user stats
+
     return NextResponse.json({
       success: true,
       data: {
@@ -60,6 +66,10 @@ export async function GET(request: NextRequest) {
         overdueLoans: stats.overdueLoans,
         returnInProgressLoans: stats.returnInProgressLoans,
         returnedLoans: stats.returnedLoans
+      }
+    }, {
+      headers: {
+        'Cache-Control': cacheControl
       }
     });
   } catch (error) {

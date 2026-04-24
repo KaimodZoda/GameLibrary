@@ -58,6 +58,10 @@ export async function GET(request: Request) {
       page,
       limit,
       totalPages: Math.ceil(total / limit)
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+      }
     });
   } catch (error) {
     console.error('Error fetching games:', error);
