@@ -77,12 +77,7 @@ export async function requireAdmin(request: NextRequest): Promise<NextResponse |
     });
   }
   
-  console.log('Admin auth - Token found:', !!token);
-  console.log('Admin auth - Token role:', token?.role);
-  console.log('Admin auth - Token role type:', typeof token?.role);
-  console.log('Admin auth - Token full object:', JSON.stringify(token, null, 2));
-  console.log('Admin auth - Is admin check:', isAdmin(token));
-  
+    
   if (!token) {
     return NextResponse.json(
       { success: false, message: 'Authentication required' },
@@ -91,7 +86,6 @@ export async function requireAdmin(request: NextRequest): Promise<NextResponse |
   }
   
   if (!isAdmin(token)) {
-    console.log('Admin auth - Access denied for role:', token?.role);
     return NextResponse.json(
       { success: false, message: 'Admin access required' },
       { status: 403 }
