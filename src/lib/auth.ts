@@ -27,11 +27,23 @@ export async function requireAuth(request: NextRequest): Promise<NextResponse | 
   console.log('Auth middleware: Auth header present:', request.headers.has('authorization'));
   console.log('Auth middleware: Cookie header present:', request.headers.has('cookie'));
   console.log('Auth middleware: NEXTAUTH_SECRET exists:', !!process.env.NEXTAUTH_SECRET);
+  console.log('Auth middleware: Cookie header:', request.headers.get('cookie'));
   
-  const token = await getToken({ 
+  // Try both secure and non-secure cookie names
+  let token = await getToken({ 
     req: request,
-    secret: process.env.NEXTAUTH_SECRET 
+    secret: process.env.NEXTAUTH_SECRET,
+    cookieName: 'next-auth.session-token'
   });
+  
+  // If not found, try the secure cookie name
+  if (!token) {
+    token = await getToken({ 
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName: '__Secure-next-auth.session-token'
+    });
+  }
   
   console.log('Auth middleware: Token result:', token ? 'Token found' : 'No token found');
   
