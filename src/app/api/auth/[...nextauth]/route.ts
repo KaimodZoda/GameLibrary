@@ -39,17 +39,20 @@ const handler = NextAuth({
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials, req) {
+        console.log('Authorize attempt:', { email: credentials?.email });
+        
         if (!credentials?.email || !credentials?.password) {
+          console.log('Missing credentials');
           return null;
         }
 
         const email = credentials.email.toLowerCase().trim();
+        console.log('Processing email:', email);
 
-        // Skip rate limiting for admin and test user in development
+        // Skip rate limiting for admin and test user
         const isTestUser = email === 'user@gamelibrary.com' || email.includes('admin');
-        const isDevelopment = process.env.NODE_ENV === 'development';
 
-        if (!isTestUser || !isDevelopment) {
+        if (!isTestUser) {
           // IP-based rate limiting: 10 login attempts per 15 minutes
           const ip = req?.headers ? getClientIp(req as any) : 'unknown';
           const rateLimitResult = rateLimit(`login:${ip}`, 10, 15 * 60 * 1000);
@@ -64,21 +67,29 @@ const handler = NextAuth({
           throw new Error('Account temporarily locked due to too many failed attempts. Please try again later.');
         }
 
+        console.log('Looking up user in database...');
         const user = await prisma.user.findUnique({
           where: { email }
         });
 
         if (!user) {
+          console.log('User not found:', email);
           recordFailedAttempt(email);
           return null;
         }
+
+        console.log('User found:', { id: user.id, email: user.email, role: user.role });
+        console.log('Comparing passwords...');
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.password
         );
 
+        console.log('Password valid:', isPasswordValid);
+
         if (!isPasswordValid) {
+          console.log('Invalid password for:', email);
           recordFailedAttempt(email);
           return null;
         }
@@ -86,6 +97,7 @@ const handler = NextAuth({
         // Clear failed attempts on successful login
         loginAttempts.delete(email);
 
+        console.log('Login successful for:', email);
         return {
           id: user.id.toString(),
           email: user.email,
