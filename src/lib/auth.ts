@@ -23,10 +23,17 @@ export async function authenticate(request: NextRequest) {
  * Use this for simpler error handling in API routes
  */
 export async function requireAuth(request: NextRequest): Promise<NextResponse | any> {
+  console.log('Auth middleware: Checking request headers...');
+  console.log('Auth middleware: Auth header present:', request.headers.has('authorization'));
+  console.log('Auth middleware: Cookie header present:', request.headers.has('cookie'));
+  console.log('Auth middleware: NEXTAUTH_SECRET exists:', !!process.env.NEXTAUTH_SECRET);
+  
   const token = await getToken({ 
     req: request,
     secret: process.env.NEXTAUTH_SECRET 
   });
+  
+  console.log('Auth middleware: Token result:', token ? 'Token found' : 'No token found');
   
   if (!token) {
     return NextResponse.json(
