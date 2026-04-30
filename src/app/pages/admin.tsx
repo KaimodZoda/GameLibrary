@@ -8,6 +8,9 @@ import AddGameForm from '@/components/admin/AddGameForm';
 import GameList from '@/components/admin/GameList';
 import UserManagement from '@/components/admin/UserManagement';
 
+// Force dynamic rendering to prevent prerendering
+export const dynamic = 'force-dynamic';
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
