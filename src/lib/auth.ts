@@ -61,10 +61,21 @@ export function isAdmin(token: any): boolean {
  * Returns error response if not admin
  */
 export async function requireAdmin(request: NextRequest): Promise<NextResponse | any> {
-  const token = await getToken({ 
+  // Try both secure and non-secure cookie names
+  let token = await getToken({ 
     req: request,
-    secret: process.env.NEXTAUTH_SECRET 
+    secret: process.env.NEXTAUTH_SECRET,
+    cookieName: 'next-auth.session-token'
   });
+  
+  // If not found, try the secure cookie name
+  if (!token) {
+    token = await getToken({ 
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName: '__Secure-next-auth.session-token'
+    });
+  }
   
   console.log('Admin auth - Token found:', !!token);
   console.log('Admin auth - Token role:', token?.role);
