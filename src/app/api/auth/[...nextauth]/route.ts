@@ -1,7 +1,6 @@
 import NextAuth from 'next-auth';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { prisma } from '@/lib/prisma';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
@@ -32,7 +31,6 @@ const recordFailedAttempt = (email: string): void => {
 };
 
 const handler = NextAuth({
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'credentials',
