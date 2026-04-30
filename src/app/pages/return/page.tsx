@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLoans } from '@/hooks/useLoans';
 import { isLoanOverdue } from '@/lib/stats';
@@ -8,7 +8,7 @@ import { isLoanOverdue } from '@/lib/stats';
 // Force dynamic rendering to prevent prerendering
 export const dynamic = 'force-dynamic';
 
-export default function ReturnPage() {
+function ReturnPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const loanId = searchParams.get('loanId');
@@ -272,5 +272,17 @@ export default function ReturnPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function ReturnPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    }>
+      <ReturnPageContent />
+    </Suspense>
   );
 }

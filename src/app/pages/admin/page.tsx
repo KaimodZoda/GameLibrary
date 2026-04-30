@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AddGameForm from '@/components/admin/AddGameForm';
@@ -12,7 +12,7 @@ import AdminActions from '@/components/admin/AdminActions';
 // Force dynamic rendering to prevent prerendering
 export const dynamic = 'force-dynamic';
 
-export default function AdminPage() {
+function AdminPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -143,5 +143,17 @@ export default function AdminPage() {
           </div>
         </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    }>
+      <AdminPageContent />
+    </Suspense>
   );
 }
