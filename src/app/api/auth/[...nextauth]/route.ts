@@ -39,15 +39,11 @@ const handler = NextAuth({
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials, req) {
-        console.log('Authorize attempt:', { email: credentials?.email });
-        
         if (!credentials?.email || !credentials?.password) {
-          console.log('Missing credentials');
           return null;
         }
 
         const email = credentials.email.toLowerCase().trim();
-        console.log('Processing email:', email);
 
         // Skip rate limiting for admin and test user
         const isTestUser = email === 'user@gamelibrary.com' || email.includes('admin');
@@ -67,37 +63,27 @@ const handler = NextAuth({
           throw new Error('Account temporarily locked due to too many failed attempts. Please try again later.');
         }
 
-        console.log('Looking up user in database...');
         const user = await prisma.user.findUnique({
           where: { email }
         });
 
         if (!user) {
-          console.log('User not found:', email);
           recordFailedAttempt(email);
           return null;
         }
-
-        console.log('User found:', { id: user.id, email: user.email, role: user.role });
-        console.log('Comparing passwords...');
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.password
         );
 
-        console.log('Password valid:', isPasswordValid);
-
         if (!isPasswordValid) {
-          console.log('Invalid password for:', email);
           recordFailedAttempt(email);
           return null;
         }
 
         // Clear failed attempts on successful login
         loginAttempts.delete(email);
-
-        console.log('Login successful for:', email);
         return {
           id: user.id.toString(),
           email: user.email,
