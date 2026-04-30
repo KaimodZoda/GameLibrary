@@ -5,6 +5,9 @@ import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+// Force dynamic rendering to prevent prerendering
+export const dynamic = 'force-dynamic';
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useLoans } from '@/hooks/useLoans';
 import { isLoanOverdue } from '@/lib/stats';
 
+// Force dynamic rendering to prevent prerendering
+export const dynamic = 'force-dynamic';
+
 export default function ReturnPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
