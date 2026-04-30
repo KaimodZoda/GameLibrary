@@ -9,6 +9,9 @@ import UserManagement from '@/components/admin/UserManagement';
 import RequestManagement from '@/components/admin/RequestManagementUnified';
 import AdminActions from '@/components/admin/AdminActions';
 
+// Force dynamic rendering to prevent prerendering
+export const dynamic = 'force-dynamic';
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
