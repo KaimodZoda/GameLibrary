@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+// Force dynamic rendering to prevent prerendering
+export const dynamic = 'force-dynamic';
+
 export default function SignUp() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

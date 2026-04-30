@@ -1,6 +1,28 @@
-# Game Library
+# Game Library Monorepo
 
-A full-stack web application for managing a game borrowing system. Users can browse available games, borrow them, and return them with admin approval workflows.
+A full-stack web application for managing a game borrowing system with integrated LLM assistant. Users can browse available games, borrow them, and return them with admin approval workflows.
+
+## Live Demo
+
+**Deployed on Vercel:** [https://game-library-omega.vercel.app]
+
+## Project Structure
+
+```
+game-library-monorepo/
+├── web-app/                 # Next.js web application
+│   ├── src/app/            # React components and pages
+│   ├── src/app/api/        # API routes
+│   ├── prisma/             # Database schema and migrations
+│   └── package.json        # Web app dependencies
+├── services/               # Microservices
+│   └── llm-assistant/      # LLM assistant service
+│       ├── main.py         # LLM service entry point
+│       ├── requirements.txt # Python dependencies
+│       └── config.py       # Configuration
+├── package.json            # Root monorepo configuration
+└── README.md              # This file
+```
 
 ## Features
 
@@ -32,7 +54,7 @@ A full-stack web application for managing a game borrowing system. Users can bro
 
 - **Frontend**: Next.js 16.2.4, React 19, Tailwind CSS 4
 - **Backend**: Next.js API Routes
-- **Database**: SQLite with Prisma ORM
+- **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: NextAuth.js v4
 - **Validation**: Zod
 - **Icons**: Font Awesome
@@ -47,7 +69,7 @@ A full-stack web application for managing a game borrowing system. Users can bro
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/KaimodZoda/GameLibrary
 cd game-library-next
 ```
 
@@ -63,7 +85,7 @@ Create a `.env` file in the root directory:
 
 ```env
 DATABASE_URL="file:./dev.db"
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="https://game-library-omega.vercel.app"
 NEXTAUTH_SECRET="your-secret-key-here"
 ```
 

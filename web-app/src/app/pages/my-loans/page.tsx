@@ -7,6 +7,9 @@ import StatCard from '@/components/StatCard';
 import { useLoans } from '@/hooks/useLoans';
 import { getDisplayStatus } from '@/lib/stats';
 
+// Force dynamic rendering to prevent prerendering
+export const dynamic = 'force-dynamic';
+
 export default function MyLoans() {
   const router = useRouter();
   const { data: session } = useSession();

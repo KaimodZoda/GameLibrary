@@ -1,35 +1,25 @@
 {
-  "name": "game-library-next",
-  "version": "0.1.0",
+  "name": "game-library-monorepo",
+  "version": "1.0.0",
+  "description": "Game Library with LLM Assistant - Monorepo",
   "private": true,
+  "workspaces": [
+    "web-app",
+    "services/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
-    "start": "next start",
-    "lint": "eslint",
-    "db:seed": "tsx prisma/seed.ts"
-  },
-  "dependencies": {
-    "@fortawesome/fontawesome-free": "^7.2.0",
-    "@next-auth/prisma-adapter": "^1.0.7",
-    "@prisma/client": "^5.22.0",
-    "bcryptjs": "^3.0.3",
-    "next": "^16.2.4",
-    "next-auth": "^4.24.13",
-    "prisma": "^5.22.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "zod": "^4.3.6"
+    "dev:web": "cd web-app && npm run dev",
+    "build:web": "cd web-app && npm run build",
+    "start:web": "cd web-app && npm start",
+    "dev:services": "concurrently \"npm run dev:llm\"",
+    "dev:llm": "cd services/llm-assistant && python main.py",
+    "install:all": "npm install && cd web-app && npm install && cd ../services/llm-assistant && pip install -r requirements.txt",
+    "build:all": "npm run build:web"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
-    "tsx": "^4.21.0",
-    "typescript": "^5"
+    "concurrently": "^7.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
