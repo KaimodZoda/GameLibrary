@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+import { UserRole } from '@prisma/client';
 import { requireAdmin } from '@/lib/auth';
 
 export async function PUT(
@@ -18,7 +19,7 @@ export async function PUT(
     const body = await request.json();
     const { role } = body;
 
-    if (!role || !['USER', 'ADMIN'].includes(role)) {
+    if (!role || !Object.values(UserRole).includes(role as UserRole)) {
       return NextResponse.json(
         { success: false, message: 'Invalid role' },
         { status: 400 }
@@ -26,7 +27,7 @@ export async function PUT(
     }
 
     // Prevent admin from changing their own role
-    const targetUser = await (prisma as any).user.findUnique({
+    const targetUser = await prisma.user.findUnique({
       where: { id: userId },
       select: { email: true }
     });
@@ -38,9 +39,9 @@ export async function PUT(
       );
     }
 
-    const updatedUser = await (prisma as any).user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { role },
+      data: { role: role as UserRole },
       select: {
         id: true,
         email: true,
@@ -78,7 +79,7 @@ export async function DELETE(
     const userId = parseInt(resolvedParams.id);
 
     // Check if user exists
-    const user = await (prisma as any).user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId }
     });
 
@@ -98,7 +99,7 @@ export async function DELETE(
     }
 
     // Delete user (this will also delete related loans due to cascade)
-    await (prisma as any).user.delete({
+    await prisma.user.delete({
       where: { id: userId }
     });
 

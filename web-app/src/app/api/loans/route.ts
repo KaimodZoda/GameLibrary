@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+import { LoanStatus, ReturnStatus } from '@prisma/client';
 import { requireAuth, getUserId } from '@/lib/auth';
 import { createLoanSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
         userId,
         gameId,
         status: {
-          in: ['pending', 'approved']
+          in: [LoanStatus.pending, LoanStatus.approved, LoanStatus.picked_up]
         }
       }
     });
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
           in: userLoanIds
         },
         status: {
-          in: ['pending', 'approved']
+          in: [ReturnStatus.pending, ReturnStatus.approved]
         }
       }
     });

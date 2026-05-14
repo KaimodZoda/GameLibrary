@@ -1,63 +1,37 @@
-// Shared utility functions for stats calculations
+import { getDisplayStatus, getLendingState, isLoanOverdue } from '@/lib/lending-state';
+import type { LoanLike, ReturnLike } from '@/types/lending';
 
-// Helper function to check if a loan is overdue (compares dates only, not time)
-export const isLoanOverdue = (dueDate: string | Date): boolean => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(dueDate);
-  due.setHours(0, 0, 0, 0);
-  return due < today;
-};
+export { getDisplayStatus, isLoanOverdue };
 
-export const getDisplayStatus = (loan: any, returnRequests?: any[]) => {
-  const returnRequest = returnRequests?.find(req => req.loanId === loan.id);
-
-  if (loan.status === 'pending') return 'Borrow Pending';
-  if (loan.status === 'approved') return 'Borrow Approved';
-  if (loan.status === 'rejected') return 'Rejected';
-  if (loan.status === 'completed') {
-    if (!returnRequest) {
-      // Check if overdue
-      if (isLoanOverdue(loan.dueDate)) return 'Overdue';
-      return 'Active';
-    }
-    if (returnRequest.status === 'pending') return 'Return Pending';
-    if (returnRequest.status === 'approved') return 'Returning';
-    if (returnRequest.status === 'completed') return 'Returned';
-  }
-  return 'Unknown';
-};
-
-export const calculateStats = (loans: any[], returnRequests?: any[]) => {
-  const activeLoans = loans.filter(loan => {
-    const status = getDisplayStatus(loan, returnRequests);
-    return status === 'Active' || status === 'Borrow Approved';
+export const calculateStats = <TLoan extends LoanLike, TReturn extends ReturnLike>(
+  loans: TLoan[],
+  returnRequests?: TReturn[]
+) => {
+  const activeLoans = loans.filter((loan) => {
+    const state = getLendingState(loan, returnRequests);
+    return state === 'active' || state === 'borrow_approved';
   });
 
-  // Borrowed includes all non-returned loans (active + overdue + return in progress)
-  const borrowedLoans = loans.filter(loan => {
-    const status = getDisplayStatus(loan, returnRequests);
-    return status === 'Active' || status === 'Borrow Approved' || status === 'Overdue';
+  const borrowedLoans = loans.filter((loan) => {
+    const state = getLendingState(loan, returnRequests);
+    return state === 'active' || state === 'borrow_approved' || state === 'overdue';
   });
 
-  const pendingLoans = loans.filter(loan => {
-    const status = getDisplayStatus(loan, returnRequests);
-    return status === 'Borrow Pending';
+  const pendingLoans = loans.filter((loan) => {
+    return getLendingState(loan, returnRequests) === 'borrow_pending';
   });
 
-  const overdueLoans = loans.filter(loan => {
-    const status = getDisplayStatus(loan, returnRequests);
-    return status === 'Overdue';
+  const overdueLoans = loans.filter((loan) => {
+    return getLendingState(loan, returnRequests) === 'overdue';
   });
 
-  const returnedLoans = loans.filter(loan => {
-    const status = getDisplayStatus(loan, returnRequests);
-    return status === 'Returned';
+  const returnedLoans = loans.filter((loan) => {
+    return getLendingState(loan, returnRequests) === 'returned';
   });
 
-  const returnInProgressLoans = loans.filter(loan => {
-    const status = getDisplayStatus(loan, returnRequests);
-    return status === 'Returning' || status === 'Return Pending';
+  const returnInProgressLoans = loans.filter((loan) => {
+    const state = getLendingState(loan, returnRequests);
+    return state === 'return_approved' || state === 'return_pending';
   });
 
   return {

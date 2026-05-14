@@ -1,5 +1,18 @@
 import { z } from 'zod';
 
+const USER_ROLES = ['USER', 'ADMIN'] as const;
+const LOAN_STATUSES = ['pending', 'approved', 'picked_up', 'returned', 'rejected'] as const;
+const RETURN_STATUSES = ['pending', 'approved', 'completed'] as const;
+const RETURN_METHODS = ['in-person', 'drop-box', 'shipping', 'courier'] as const;
+const ADMIN_ACTION_TYPES = [
+  'loan_approved',
+  'loan_rejected',
+  'return_approved',
+  'return_rejected',
+  'return_completed',
+  'loan_picked_up'
+] as const;
+
 // Game validation schemas
 export const createGameSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title must be less than 100 characters'),
@@ -29,7 +42,7 @@ export const createLoanSchema = z.object({
 });
 
 export const updateLoanSchema = z.object({
-  status: z.enum(['pending', 'approved', 'completed', 'rejected']).optional(),
+  status: z.enum(LOAN_STATUSES).optional(),
   approvedBy: z.number().int().optional(),
   approvedAt: z.string().optional(),
   completedBy: z.number().int().optional(),
@@ -40,14 +53,14 @@ export const updateLoanSchema = z.object({
 // Return validation schemas
 export const createReturnSchema = z.object({
   loanId: z.number().int().positive('Loan ID must be a positive integer'),
-  returnMethod: z.enum(['in-person', 'drop-box', 'shipping', 'courier']).optional(),
+  returnMethod: z.enum(RETURN_METHODS).optional(),
   trackingNumber: z.string().optional(),
   returnNotes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
   estimatedReturnDate: z.string().optional()
 });
 
 export const updateReturnSchema = z.object({
-  status: z.enum(['pending', 'approved', 'completed']).optional(),
+  status: z.enum(RETURN_STATUSES).optional(),
   approvedBy: z.number().int().optional(),
   approvedAt: z.string().optional(),
   completedBy: z.number().int().optional(),
@@ -57,7 +70,7 @@ export const updateReturnSchema = z.object({
 
 // Admin action validation schemas
 export const adminActionSchema = z.object({
-  action: z.enum(['loan_approved', 'loan_rejected', 'return_approved', 'return_completed', 'loan_picked_up']),
+  action: z.enum(ADMIN_ACTION_TYPES),
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional()
 });
 
@@ -72,13 +85,13 @@ export const createUserSchema = z.object({
     .min(8, 'Password must be at least 8 characters')
     .regex(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
-  role: z.enum(['USER', 'ADMIN']).optional().default('USER')
+  role: z.enum(USER_ROLES).optional().default('USER')
 });
 
 export const updateUserSchema = z.object({
   email: z.email('Invalid email address').optional(),
   name: z.string().min(1).max(100).optional(),
-  role: z.enum(['USER', 'ADMIN']).optional()
+  role: z.enum(USER_ROLES).optional()
 }).partial();
 
 // Query parameter validation schemas
@@ -91,7 +104,7 @@ export const gamesQuerySchema = z.object({
 });
 
 export const loansQuerySchema = z.object({
-  status: z.enum(['pending', 'approved', 'completed', 'rejected']).optional(),
+  status: z.enum(LOAN_STATUSES).optional(),
   page: z.string().transform((val) => parseInt(val || '1')).pipe(z.number().int().positive()),
   limit: z.string().transform((val) => parseInt(val || '20')).pipe(z.number().int().positive().max(100))
 });

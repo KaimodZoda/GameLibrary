@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
+import { AdminActionType, LoanStatus, ReturnStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { adminNotesSchema } from '@/lib/validations';
@@ -41,7 +42,7 @@ export async function PUT(
       );
     }
 
-    if (returnRequest.status !== 'approved') {
+    if (returnRequest.status !== ReturnStatus.approved) {
       return NextResponse.json(
         { success: false, message: 'Return request is not in approved status' },
         { status: 400 }
@@ -52,16 +53,17 @@ export async function PUT(
     const updatedReturn = await prisma.return.update({
       where: { id: returnId },
       data: {
-        status: 'completed',
+        status: ReturnStatus.completed,
         completedAt: new Date(),
         completedBy: adminId
       }
     });
 
-    // Update the associated loan to mark as fully completed
+    // Close the associated loan once the return is completed.
     await prisma.loan.update({
       where: { id: returnRequest.loanId },
       data: {
+        status: LoanStatus.returned,
         completedAt: new Date(),
         completedBy: adminId
       }
@@ -84,7 +86,7 @@ export async function PUT(
       data: {
         adminId,
         returnId,
-        action: 'return_completed',
+        action: AdminActionType.return_completed,
         notes: sanitizedNotes || 'Return completed, game available again'
       }
     });

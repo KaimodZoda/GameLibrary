@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
+import { AdminActionType, ReturnStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { adminNotesSchema } from '@/lib/validations';
@@ -41,7 +42,7 @@ export async function PUT(
       );
     }
 
-    if (returnRequest.status !== 'pending') {
+    if (returnRequest.status !== ReturnStatus.pending) {
       return NextResponse.json(
         { success: false, message: 'Return request is not in pending status' },
         { status: 400 }
@@ -52,7 +53,7 @@ export async function PUT(
     const updatedReturn = await prisma.return.update({
       where: { id: returnId },
       data: {
-        status: 'approved',
+        status: ReturnStatus.approved,
         approvedAt: new Date(),
         approvedBy: adminId
       }
@@ -63,7 +64,7 @@ export async function PUT(
       data: {
         adminId,
         returnId,
-        action: 'return_approved',
+        action: AdminActionType.return_approved,
         notes: sanitizedNotes || 'Return request approved'
       }
     });

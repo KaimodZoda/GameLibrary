@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { isLoanOverdue } from '@/lib/stats';
+import {
+  getDisplayStatus,
+  getLendingState
+} from '@/lib/lending-state';
+import type { LoanSummary, ReturnSummary } from '@/types/lending';
 
-type LoanRequest = {
-  id: number;
-  userId: number;
-  gameId: number;
-  dateBorrowed: string;
-  dueDate: string;
-  status: string;
+type LoanRequest = LoanSummary & {
   approvedAt?: string;
   approvedBy?: number;
   pickupDate?: string;
@@ -32,20 +30,7 @@ type LoanRequest = {
   };
 };
 
-type ReturnRequest = {
-  id: number;
-  loanId: number;
-  requestedReturnDate: string;
-  approvedAt?: string;
-  approvedBy?: number;
-  completedAt?: string;
-  completedBy?: number;
-  estimatedReturnDate?: string;
-  returnMethod?: string;
-  trackingNumber?: string;
-  returnNotes?: string;
-  status: string;
-};
+type ReturnRequest = ReturnSummary;
 
 export default function RequestManagementUnified() {
   const { data: session } = useSession();
@@ -141,26 +126,6 @@ export default function RequestManagementUnified() {
     }
   };
 
-  // Get display status similar to my-loans page
-  const getDisplayStatus = (loan: LoanRequest, returnRequest?: ReturnRequest) => {
-    const returnReq = returns.find(req => req.loanId === loan.id);
-
-    if (loan.status === 'pending') return 'Borrow Pending';
-    if (loan.status === 'approved') return 'Borrow Approved';
-    if (loan.status === 'rejected') return 'Rejected';
-    if (loan.status === 'completed') {
-      if (!returnReq) {
-        // Check if overdue
-        if (isLoanOverdue(loan.dueDate)) return 'Overdue';
-        return 'Active';
-      }
-      if (returnReq.status === 'pending') return 'Return Pending';
-      if (returnReq.status === 'approved') return 'Returning';
-      if (returnReq.status === 'completed') return 'Returned';
-    }
-    return 'Unknown';
-  };
-
   const getStatusColor = (displayStatus: string) => {
     switch (displayStatus) {
       case 'Borrow Pending': return 'bg-yellow-100 text-yellow-800';
@@ -177,27 +142,26 @@ export default function RequestManagementUnified() {
 
   // Get available actions based on status
   const getAvailableActions = (loan: LoanRequest, returnRequest?: ReturnRequest) => {
-    const displayStatus = getDisplayStatus(loan, returnRequest);
+    const lendingState = getLendingState(loan, returns);
 
-    switch (displayStatus) {
-      case 'Borrow Pending':
+    switch (lendingState) {
+      case 'borrow_pending':
         return { type: 'loan', actions: ['approve', 'reject'] };
-      case 'Borrow Approved':
+      case 'borrow_approved':
         return { type: 'loan', actions: ['pickup'] };
-      case 'Return Pending':
+      case 'return_pending':
         return { type: 'return', actions: ['approve'] };
-      case 'Returning':
+      case 'return_approved':
         return { type: 'return', actions: ['complete'] };
       default:
         return { type: 'none', actions: [] };
     }
   };
 
-  const pendingLoans = loans.filter(loan => loan.status === 'pending');
-  const rejectedLoans = loans.filter(loan => loan.status === 'rejected');
-  const approvedLoans = loans.filter(loan => loan.status === 'approved');
-  const pendingReturns = returns.filter(ret => ret.status === 'pending');
-  const approvedReturns = returns.filter(ret => ret.status === 'approved');
+  const pendingLoans = loans.filter((loan) => getLendingState(loan, returns) === 'borrow_pending');
+  const approvedLoans = loans.filter((loan) => getLendingState(loan, returns) === 'borrow_approved');
+  const pendingReturns = loans.filter((loan) => getLendingState(loan, returns) === 'return_pending');
+  const approvedReturns = loans.filter((loan) => getLendingState(loan, returns) === 'return_approved');
 
   if (loading) {
     return (
@@ -277,7 +241,7 @@ export default function RequestManagementUnified() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loans.filter(loan => loan.status !== 'rejected').map((loan) => {
                 const returnRequest = returns.find(req => req.loanId === loan.id);
-                const displayStatus = getDisplayStatus(loan, returnRequest);
+                const displayStatus = getDisplayStatus(loan, returns);
                 const availableActions = getAvailableActions(loan, returnRequest);
                 
                 return (

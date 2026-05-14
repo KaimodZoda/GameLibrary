@@ -2,8 +2,12 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useLoans } from '@/hooks/useLoans';
-import { isLoanOverdue } from '@/lib/stats';
+import { useLoans, type UserLoan } from '@/hooks/useLoans';
+import {
+  getDisplayStatus,
+  getLendingState
+} from '@/lib/lending-state';
+import type { ReturnSummary } from '@/types/lending';
 
 // Force dynamic rendering to prevent prerendering
 export const dynamic = 'force-dynamic';
@@ -12,14 +16,18 @@ function ReturnPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const loanId = searchParams.get('loanId');
-  const [selectedLoan, setSelectedLoan] = useState<any>(null);
+  const [selectedLoan, setSelectedLoan] = useState<UserLoan | null>(null);
   const [returnMethod, setReturnMethod] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [expectedReturnDate, setExpectedReturnDate] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [returnRequests, setReturnRequests] = useState<any[]>([]);
+  const [returnRequests, setReturnRequests] = useState<ReturnSummary[]>([]);
   const { loans } = useLoans();
+  const returnableLoans = loans.filter((loan) => {
+    const lendingState = getLendingState(loan, returnRequests);
+    return lendingState === 'active' || lendingState === 'overdue';
+  });
 
   // Fetch return requests
   useEffect(() => {
@@ -41,16 +49,13 @@ function ReturnPageContent() {
   // Auto-select loan if ID is provided
   useEffect(() => {
     if (loanId) {
-      const loan = loans.find(l => l.id === parseInt(loanId));
+      const loan = returnableLoans.find((item) => item.id === parseInt(loanId));
       if (loan) {
         setSelectedLoan(loan);
-        // Pre-fill return method if available
-        if (!loan.returnedAt) {
-          setReturnMethod('in-person');
-        }
+        setReturnMethod('in-person');
       }
     }
-  }, [loanId, loans]);
+  }, [loanId, returnableLoans]);
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -68,7 +73,8 @@ function ReturnPageContent() {
           loanId: selectedLoan.id,
           returnMethod,
           trackingNumber,
-          notes
+          estimatedReturnDate: expectedReturnDate,
+          returnNotes: notes
         })
       });
       
@@ -108,12 +114,9 @@ function ReturnPageContent() {
               <div className="bg-white rounded-lg shadow p-8">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Select Loan</h2>
                 <div className="space-y-4">
-                  {loans.filter((loan: any) => {
-                    // Only show loans that are Active (completed status but no return request)
-                    const hasAnyReturn = returnRequests.some((req: any) => 
-                      req.loanId === loan.id
-                    );
-                    return loan.status === 'completed' && !hasAnyReturn;
+                  {loans.filter((loan) => {
+                    const lendingState = getLendingState(loan, returnRequests);
+                    return lendingState === 'active' || lendingState === 'overdue';
                   }).map((loan) => (
                     <div
                       key={loan.id}
@@ -134,24 +137,18 @@ function ReturnPageContent() {
                         </div>
                         <div className="flex-shrink-0">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            !loan.returnedAt && isLoanOverdue(loan.dueDate)
+                            getLendingState(loan, returnRequests) === 'overdue'
                               ? 'bg-red-100 text-red-800'
                               : 'bg-green-100 text-green-800'
                           }`}>
-                            {!loan.returnedAt && isLoanOverdue(loan.dueDate) ? 'Overdue' : 'Active'}
+                            {getDisplayStatus(loan, returnRequests)}
                           </span>
                         </div>
                       </div>
                     </div>
                   ))}
                   
-                  {loans.filter(loan => {
-                    const hasActiveReturn = returnRequests.some((req: any) => 
-                      req.loanId === loan.id && 
-                      ['pending', 'approved', 'completed'].includes(req.status)
-                    );
-                    return !loan.returnedAt && !hasActiveReturn;
-                  }).length === 0 && (
+                  {returnableLoans.length === 0 && (
                     <div className="text-center py-8">
                       <i className="fas fa-box-open text-gray-400 text-4xl mb-4"></i>
                       <p className="text-gray-600">No active loans to return</p>

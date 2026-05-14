@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+import { ReturnStatus } from '@prisma/client';
 import { requireAuth, getUserId } from '@/lib/auth';
 
 // DELETE /api/returns/[id] - Cancel a return request
@@ -51,7 +52,7 @@ export async function DELETE(
     }
 
     // Only allow canceling pending or approved return requests (not completed ones)
-    if (returnRequest.status === 'completed') {
+    if (returnRequest.status === ReturnStatus.completed) {
       return NextResponse.json(
         { success: false, message: 'Cannot cancel a completed return' },
         { status: 400 }

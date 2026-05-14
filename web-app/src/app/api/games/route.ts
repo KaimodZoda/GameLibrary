@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { createGameSchema, gamesQuerySchema } from '@/lib/validations';
 import { ZodError } from 'zod';
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
     const { platform, genre, search, page, limit } = queryParams;
 
     // Build where clause for Prisma
-    const where: any = {};
+    const where: Prisma.GameWhereInput = {};
 
     // Filter by platform
     if (platform && platform !== 'All Platforms') {
@@ -34,7 +35,8 @@ export async function GET(request: Request) {
     // Filter by search query
     if (search) {
       where.title = {
-        contains: search
+        contains: search,
+        mode: 'insensitive'
       };
     }
 

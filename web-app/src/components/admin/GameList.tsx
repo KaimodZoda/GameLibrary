@@ -202,7 +202,6 @@ const GameList = ({ refreshTrigger }: GameListProps) => {
       {/* Delete Confirmation */}
       {deleteConfirm && (
         <DeleteConfirmModal
-          gameId={deleteConfirm}
           gameTitle={games.find(g => g.id === deleteConfirm)?.title || ''}
           onConfirm={() => handleDelete(deleteConfirm)}
           onCancel={() => setDeleteConfirm(null)}
@@ -223,8 +222,6 @@ const EditGameModal = ({ game, onSave, onCancel }: {
 
   const platforms = ['PC', 'PlayStation 5', 'Xbox Series X', 'Nintendo Switch', 'PlayStation 4', 'Xbox One'];
   const genres = ['Action', 'Adventure', 'RPG', 'Strategy', 'Sports', 'Racing', 'Simulation', 'Puzzle', 'Fighting', 'Platformer', 'Shooter', 'Action-Adventure'];
-  const gradients = ['from-blue-400 to-purple-500', 'from-green-400 to-blue-500', 'from-red-400 to-orange-500', 'from-purple-400 to-pink-500'];
-
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -305,8 +302,7 @@ const EditGameModal = ({ game, onSave, onCancel }: {
 };
 
 // Delete Confirmation Modal
-const DeleteConfirmModal = ({ gameId, gameTitle, onConfirm, onCancel }: {
-  gameId: number;
+const DeleteConfirmModal = ({ gameTitle, onConfirm, onCancel }: {
   gameTitle: string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -319,7 +315,7 @@ const DeleteConfirmModal = ({ gameId, gameTitle, onConfirm, onCancel }: {
           <h3 className="text-lg font-semibold text-gray-900">Delete Game</h3>
         </div>
         <p className="text-gray-600 mb-6">
-          Are you sure you want to delete "{gameTitle}"? This action cannot be undone.
+          Are you sure you want to delete &quot;{gameTitle}&quot;? This action cannot be undone.
         </p>
         <div className="flex justify-end space-x-3">
           <button

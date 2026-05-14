@@ -1,11 +1,12 @@
 import { Game } from '@/types/game';
 import { useSession } from 'next-auth/react';
-import { getDisplayStatus } from '@/lib/stats';
+import { getLendingState } from '@/lib/lending-state';
+import type { LoanSummary, ReturnSummary } from '@/types/lending';
 
 interface GameCardProps {
   game: Game;
-  loans?: any[];
-  returnRequests?: any[];
+  loans?: LoanSummary[];
+  returnRequests?: ReturnSummary[];
   onBorrowClick?: (game: Game) => void;
   onUpdate?: (updatedGame: Game) => void;
   isPublic?: boolean;
@@ -25,37 +26,37 @@ const getPlatformIcon = (platform: string) => {
 // Simplified GameCard that just emits borrow events
 const GameCard = ({ game, loans = [], returnRequests = [], onBorrowClick, onUpdate, isPublic = false, showGlobalStatus = false }: GameCardProps) => {
   const { data: session } = useSession();
+  const sessionUserId = session?.user?.id;
+  const normalizedSessionUserId =
+    typeof sessionUserId === 'string' ? parseInt(sessionUserId) : sessionUserId;
 
-  // Check if this game has a pending loan or return in progress
-  const hasPendingLoan = loans.some((loan: any) => {
-    const status = getDisplayStatus(loan);
-    return loan.gameId === game.id && status === 'Borrow Pending';
+  const getLoanStateForGame = (loan: LoanSummary) => {
+    if (loan.gameId !== game.id) return null;
+    return getLendingState(loan, returnRequests);
+  };
+
+  const hasPendingLoan = loans.some((loan) => {
+    return getLoanStateForGame(loan) === 'borrow_pending';
   });
 
-  // Check if this game has return pending or return approved status
-  const hasReturnInProgress = loans.some((loan: any) => {
-    const status = getDisplayStatus(loan, returnRequests);
-    return loan.gameId === game.id && (status === 'Return Pending' || status === 'Returning');
+  const hasReturnInProgress = loans.some((loan) => {
+    const state = getLoanStateForGame(loan);
+    return state === 'return_pending' || state === 'return_approved';
   });
 
-  // For global status, check if ANY user has an active loan for this game
-  const hasActiveLoan = loans.some((loan: any) => {
-    const status = getDisplayStatus(loan, returnRequests);
-    return loan.gameId === game.id && (status === 'Active' || status === 'Borrow Approved');
+  const hasActiveLoan = loans.some((loan) => {
+    const state = getLoanStateForGame(loan);
+    return state === 'active' || state === 'borrow_approved';
   });
 
-  // Check if this game has an overdue loan
-  const hasOverdueLoan = loans.some((loan: any) => {
-    const status = getDisplayStatus(loan, returnRequests);
-    return loan.gameId === game.id && status === 'Overdue';
+  const hasOverdueLoan = loans.some((loan) => {
+    return getLoanStateForGame(loan) === 'overdue';
   });
 
-  // Check if current user has an active loan for this game (for "Active" status display)
-  const hasUserActiveLoan = loans.some((loan: any) => {
-    const status = getDisplayStatus(loan, returnRequests);
-    const sessionUserId = session?.user?.id;
-    const isUserLoan = loan.userId === sessionUserId || (typeof sessionUserId === 'string' && loan.userId === parseInt(sessionUserId));
-    return loan.gameId === game.id && (status === 'Active' || status === 'Borrow Approved') && isUserLoan;
+  const hasUserActiveLoan = loans.some((loan) => {
+    const isUserLoan = normalizedSessionUserId !== undefined && loan.userId === normalizedSessionUserId;
+    const state = getLoanStateForGame(loan);
+    return isUserLoan && (state === 'active' || state === 'borrow_approved');
   });
   
   const handleBorrow = () => {

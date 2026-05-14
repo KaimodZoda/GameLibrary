@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Game } from '@/types/game';
 
 interface BorrowConfirmationModalProps {
@@ -9,6 +9,31 @@ interface BorrowConfirmationModalProps {
   isBorrowing: boolean;
 }
 
+type DateBounds = {
+  defaultDueDate: string;
+  minDate: string;
+  maxDate: string;
+};
+
+const getDateBounds = (): DateBounds => {
+  const today = new Date();
+
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const defaultDueDate = new Date(today);
+  defaultDueDate.setDate(defaultDueDate.getDate() + 14);
+
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + 30);
+
+  return {
+    defaultDueDate: defaultDueDate.toISOString().split('T')[0],
+    minDate: tomorrow.toISOString().split('T')[0],
+    maxDate: maxDate.toISOString().split('T')[0]
+  };
+};
+
 const BorrowConfirmationModal = ({ 
   game, 
   isOpen, 
@@ -16,16 +41,8 @@ const BorrowConfirmationModal = ({
   onConfirm, 
   isBorrowing 
 }: BorrowConfirmationModalProps) => {
-  if (!isOpen) return null;
-
-  // Set default due date to 14 days from today
-  const getDefaultDueDate = () => {
-    const date = new Date();
-    date.setDate(date.getDate() + 14);
-    return date.toISOString().split('T')[0];
-  };
-
-  const [dueDate, setDueDate] = useState(getDefaultDueDate());
+  const [dateBounds, setDateBounds] = useState<DateBounds>(() => getDateBounds());
+  const [dueDate, setDueDate] = useState(dateBounds.defaultDueDate);
   const [dateError, setDateError] = useState('');
 
   // Validate due date
@@ -63,15 +80,17 @@ const BorrowConfirmationModal = ({
     }
   };
 
-  // Reset due date when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setDueDate(getDefaultDueDate());
-      setDateError('');
-    }
-  }, [isOpen]);
+  if (!isOpen) return null;
 
-  const handleBackdropClick = () => {
+  const resetForm = () => {
+    const nextBounds = getDateBounds();
+    setDateBounds(nextBounds);
+    setDueDate(nextBounds.defaultDueDate);
+    setDateError('');
+  };
+
+  const handleClose = () => {
+    resetForm();
     onClose();
   };
 
@@ -91,7 +110,7 @@ const BorrowConfirmationModal = ({
   return (
     <div 
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
-      onClick={handleBackdropClick}
+      onClick={handleClose}
     >
       <div 
         className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative z-10"
@@ -100,7 +119,7 @@ const BorrowConfirmationModal = ({
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-900">Confirm Borrow</h3>
           <button 
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600"
           >
             <i className="fas fa-times text-xl"></i>
@@ -129,8 +148,8 @@ const BorrowConfirmationModal = ({
               type="date"
               value={dueDate}
               onChange={handleDateChange}
-              min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]} // Tomorrow
-              max={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} // 30 days from now
+              min={dateBounds.minDate}
+              max={dateBounds.maxDate}
               className="w-full px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {dateError && (
@@ -146,8 +165,8 @@ const BorrowConfirmationModal = ({
           </div>
           
           <div className="flex justify-end space-x-3">
-            <button
-              onClick={onClose}
+              <button
+              onClick={handleClose}
               className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Cancel

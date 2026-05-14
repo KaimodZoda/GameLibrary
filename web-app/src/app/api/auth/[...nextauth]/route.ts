@@ -50,7 +50,7 @@ const handler = NextAuth({
 
         if (!isTestUser) {
           // IP-based rate limiting: 10 login attempts per 15 minutes
-          const ip = req?.headers ? getClientIp(req as any) : 'unknown';
+          const ip = req?.headers ? getClientIp(req as Request) : 'unknown';
           const rateLimitResult = rateLimit(`login:${ip}`, 10, 15 * 60 * 1000);
 
           if (!rateLimitResult.success) {
@@ -97,45 +97,25 @@ const handler = NextAuth({
     strategy: 'jwt',
     maxAge: 24 * 60 * 60, // 24 hours
   },
-  cookies: {
-    sessionToken: {
-      name: 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production'
-      }
-    },
-    csrfToken: {
-      name: '__Host-next-auth.csrf-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production'
-      }
-    }
-  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role;
-        token.id = (user as any).id;
+        token.role = user.role;
+        token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = (token.id as string) || '';
-        (session.user as any).role = (token.role as string) || '';
+        session.user.id = token.id || '';
+        session.user.role = token.role || 'USER';
       }
       return session;
     }
   },
   pages: {
-    signIn: '/auth/signin',
-    error: '/auth/signin?error=true',
+    signIn: '/pages/auth/signin',
+    error: '/pages/auth/signin?error=true',
     signOut: '/'
   },
   debug: process.env.NODE_ENV === 'development'

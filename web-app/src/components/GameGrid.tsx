@@ -5,9 +5,11 @@ import GameCard from './GameCard';
 import BorrowConfirmationModal from './BorrowConfirmationModal';
 import { Game } from '@/types/game';
 import { useGames } from '@/hooks/useGames';
-import { useLoans } from '@/hooks/useLoans';
+import { useLoans, type UserLoan } from '@/hooks/useLoans';
 import { useSession } from 'next-auth/react';
 import Button from './ui/Button';
+import type { GameFilters } from '@/types/game-filters';
+import type { ReturnSummary } from '@/types/lending';
 
 interface GameCardState {
   [key: number]: Game;
@@ -23,8 +25,8 @@ const GameGrid = ({ isPublic = false, showAllLoans = false }: GameGridProps) => 
   // Skip fetching user loans when showing all loans to avoid redundant API calls
   const { loans: userLoans, returnRequests: userReturnRequests, borrowGame } = useLoans(showAllLoans);
   const { data: session } = useSession();
-  const [allLoans, setAllLoans] = useState<any[]>([]);
-  const [allReturnRequests, setAllReturnRequests] = useState<any[]>([]);
+  const [allLoans, setAllLoans] = useState<UserLoan[]>([]);
+  const [allReturnRequests, setAllReturnRequests] = useState<ReturnSummary[]>([]);
   const [gameStates, setGameStates] = useState<GameCardState>({});
   const [isFiltering] = useState(false);
   const [showBorrowModal, setShowBorrowModal] = useState(false);
@@ -110,16 +112,16 @@ const GameGrid = ({ isPublic = false, showAllLoans = false }: GameGridProps) => 
   useEffect(() => {
     // This will be called by parent component
     if (typeof window !== 'undefined') {
-      (window as any).applyGameFilters = hookApplyFilters;
-      (window as any).clearGameFilters = () => {
+      window.applyGameFilters = (filters: GameFilters) => hookApplyFilters(filters);
+      window.clearGameFilters = () => {
         hookApplyFilters({ platform: 'All Platforms', genre: 'All Genres', searchQuery: '' });
       };
     }
     
     return () => {
       if (typeof window !== 'undefined') {
-        delete (window as any).applyGameFilters;
-        delete (window as any).clearGameFilters;
+        delete window.applyGameFilters;
+        delete window.clearGameFilters;
       }
     };
   }, [hookApplyFilters]);

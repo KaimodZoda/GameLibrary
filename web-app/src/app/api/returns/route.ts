@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth, getUserId, isAdmin } from '@/lib/auth';
 import { createReturnSchema } from '@/lib/validations';
+import { toPrismaReturnMethod, toPublicReturnMethod } from '@/lib/return-method';
 import { ZodError } from 'zod';
 import { sanitizeInput } from '@/lib/sanitize';
 
@@ -48,7 +49,12 @@ export async function GET(request: NextRequest) {
       returns = allReturns.filter(return_ => userLoanIds.includes(return_.loanId));
     }
 
-    return NextResponse.json(returns);
+    return NextResponse.json(
+      returns.map((returnRequest) => ({
+        ...returnRequest,
+        returnMethod: toPublicReturnMethod(returnRequest.returnMethod)
+      }))
+    );
   } catch (error) {
     console.error('Error fetching returns:', error);
     return NextResponse.json(
@@ -85,14 +91,17 @@ export async function POST(request: NextRequest) {
     const newReturn = await prisma.return.create({
       data: {
         loanId,
-        returnMethod,
+        returnMethod: toPrismaReturnMethod(returnMethod),
         trackingNumber,
         returnNotes: sanitizedReturnNotes,
         estimatedReturnDate: estimatedReturnDate ? new Date(estimatedReturnDate) : null
       }
     });
 
-    return NextResponse.json(newReturn, { status: 201 });
+    return NextResponse.json({
+      ...newReturn,
+      returnMethod: toPublicReturnMethod(newReturn.returnMethod)
+    }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(

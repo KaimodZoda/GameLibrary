@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
+import { AdminActionType, LoanStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { adminNotesSchema } from '@/lib/validations';
@@ -41,18 +42,18 @@ export async function PUT(
       );
     }
 
-    if (loan.status !== 'approved') {
+    if (loan.status !== LoanStatus.approved) {
       return NextResponse.json(
         { success: false, message: 'Loan is not in approved status' },
         { status: 400 }
       );
     }
 
-    // Update loan status to completed and add pickup date
+    // Mark the loan as picked up after admin confirmation.
     const updatedLoan = await prisma.loan.update({
       where: { id: loanId },
       data: {
-        status: 'completed',
+        status: LoanStatus.picked_up,
         pickupDate: new Date(),
         completedBy: adminId
       }
@@ -63,7 +64,7 @@ export async function PUT(
       data: {
         adminId,
         loanId,
-        action: 'loan_picked_up',
+        action: AdminActionType.loan_picked_up,
         notes: sanitizedNotes || 'User pickup confirmed'
       }
     });

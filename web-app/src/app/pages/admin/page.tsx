@@ -12,11 +12,27 @@ import AdminActions from '@/components/admin/AdminActions';
 // Force dynamic rendering to prevent prerendering
 export const dynamic = 'force-dynamic';
 
+const getTabFromSearchParam = (tabParam: string | null): 'add' | 'list' | 'users' | 'requests' | 'actions' => {
+  switch (tabParam) {
+    case 'users':
+      return 'users';
+    case 'requests':
+      return 'requests';
+    case 'actions':
+      return 'actions';
+    case 'games':
+    default:
+      return 'add';
+  }
+};
+
 function AdminPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'add' | 'list' | 'users' | 'requests' | 'actions'>('add');
+  const [activeTab, setActiveTab] = useState<'add' | 'list' | 'users' | 'requests' | 'actions'>(() =>
+    getTabFromSearchParam(searchParams.get('tab'))
+  );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -32,17 +48,6 @@ function AdminPageContent() {
       return;
     }
 
-    // Handle URL parameter for default tab
-    const tabParam = searchParams.get('tab');
-    if (tabParam === 'games') {
-      setActiveTab('add');
-    } else if (tabParam === 'users') {
-      setActiveTab('users');
-    } else if (tabParam === 'requests') {
-      setActiveTab('requests');
-    } else if (tabParam === 'actions') {
-      setActiveTab('actions');
-    }
   }, [session, status, router, searchParams]);
 
   // Show loading while checking auth

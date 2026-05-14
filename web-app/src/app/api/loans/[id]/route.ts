@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+import { LoanStatus } from '@prisma/client';
 import { requireAuth, getUserId } from '@/lib/auth';
 
 // DELETE /api/loans/[id] - Cancel a pending loan request
@@ -39,10 +40,10 @@ export async function DELETE(
       );
     }
 
-    // Only allow canceling pending or approved loans (not completed ones)
-    if (loan.status === 'completed') {
+    // Only allow canceling requests before the user has picked up the game.
+    if (loan.status === LoanStatus.picked_up || loan.status === LoanStatus.returned) {
       return NextResponse.json(
-        { success: false, message: 'Cannot cancel a completed loan' },
+        { success: false, message: 'Cannot cancel a loan after pickup or return completion' },
         { status: 400 }
       );
     }

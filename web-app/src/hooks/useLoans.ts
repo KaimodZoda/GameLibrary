@@ -1,14 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { signIn } from 'next-auth/react';
+import type { LoanDashboardStats, LoanStatusValue, ReturnStatusValue, ReturnSummary } from '@/types/lending';
 
-interface Loan {
+type LoanMutationResult = {
+  success: boolean;
+  message: string;
+  data?: unknown;
+};
+
+export interface UserLoan {
   id: number;
+  userId: number;
   gameId: number;
   dateBorrowed: string;
   dueDate: string;
-  returnedAt?: string;
+  status: LoanStatusValue;
   approvedAt?: string;
+  approvedBy?: number;
+  pickupDate?: string;
+  completedAt?: string;
+  completedBy?: number;
   returnApprovedAt?: string;
   game: {
     id: number;
@@ -29,54 +41,56 @@ interface Loan {
   };
   returnRequest?: {
     id: number;
-    status: string;
+    status: ReturnStatusValue;
     createdAt: string;
     updatedAt: string;
   };
 }
 
 interface UseLoansReturn {
-  loans: Loan[];
-  returnRequests: any[];
+  loans: UserLoan[];
+  returnRequests: ReturnSummary[];
+  stats: LoanDashboardStats;
   loading: boolean;
   error: string | null;
   refetch: () => void;
-  borrowGame: (gameId: number, dueDate?: string) => Promise<{ success: boolean; message: string; data?: any }>;
+  borrowGame: (gameId: number, dueDate?: string) => Promise<LoanMutationResult>;
   returnGame: (loanId: number) => Promise<{ success: boolean; message: string }>;
   cancelLoan: (loanId: number) => Promise<{ success: boolean; message: string }>;
   cancelReturnRequest: (returnId: number) => Promise<{ success: boolean; message: string }>;
 }
 
 export const useLoans = (skipFetch = false): UseLoansReturn => {
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [returnRequests, setReturnRequests] = useState<any[]>([]);
+  const [loans, setLoans] = useState<UserLoan[]>([]);
+  const [returnRequests, setReturnRequests] = useState<ReturnSummary[]>([]);
+  const [stats, setStats] = useState<LoanDashboardStats>({
+    borrowedGames: 0,
+    pendingLoans: 0,
+    overdueLoans: 0,
+    returnInProgressLoans: 0,
+    returnedLoans: 0
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const hasRequestedInitialData = useRef(false);
 
   const fetchLoans = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const [loansResponse, returnsResponse] = await Promise.all([
-        fetch('/api/loans'),
-        fetch('/api/returns')
-      ]);
-      
-      const loansResult = await loansResponse.json();
-      const returnsResult = await returnsResponse.json();
-      
-      if (loansResult.success) {
-        setLoans(loansResult.data);
-      } else {
-        setError(loansResult.message || 'Failed to fetch loans');
-      }
 
-      if (Array.isArray(returnsResult)) {
-        setReturnRequests(returnsResult);
+      const response = await fetch('/api/loans/summary');
+      const result = await response.json();
+
+      if (result.success) {
+        setLoans(result.data.loans);
+        setReturnRequests(result.data.returnRequests);
+        setStats(result.data.stats);
+      } else {
+        setError(result.message || 'Failed to fetch loans');
       }
-    } catch (err) {
+    } catch {
       setError('Network error');
     } finally {
       setLoading(false);
@@ -111,7 +125,7 @@ export const useLoans = (skipFetch = false): UseLoansReturn => {
       }
       
       return result;
-    } catch (err) {
+    } catch {
       return {
         success: false,
         message: 'Network error'
@@ -140,7 +154,7 @@ export const useLoans = (skipFetch = false): UseLoansReturn => {
       }
 
       return result;
-    } catch (err) {
+    } catch {
       return {
         success: false,
         message: 'Network error'
@@ -162,7 +176,7 @@ export const useLoans = (skipFetch = false): UseLoansReturn => {
       }
 
       return result;
-    } catch (err) {
+    } catch {
       return {
         success: false,
         message: 'Network error'
@@ -184,7 +198,7 @@ export const useLoans = (skipFetch = false): UseLoansReturn => {
       }
 
       return result;
-    } catch (err) {
+    } catch {
       return {
         success: false,
         message: 'Network error'
@@ -193,16 +207,30 @@ export const useLoans = (skipFetch = false): UseLoansReturn => {
   };
 
   useEffect(() => {
-    if (session && !skipFetch) {
-      fetchLoans();
-    } else if (skipFetch) {
+    if (skipFetch) {
       setLoading(false);
+      return;
     }
-  }, [session, skipFetch]);
+
+    if (status === 'unauthenticated') {
+      setLoading(false);
+      return;
+    }
+
+    if (hasRequestedInitialData.current) {
+      return;
+    }
+
+    if (status === 'loading' || session) {
+      hasRequestedInitialData.current = true;
+      fetchLoans();
+    }
+  }, [session, status, skipFetch]);
 
   return {
     loans,
     returnRequests,
+    stats,
     loading,
     error,
     refetch: fetchLoans,

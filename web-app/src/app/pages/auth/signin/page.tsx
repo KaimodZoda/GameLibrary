@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 // Force dynamic rendering to prevent prerendering
@@ -15,13 +15,29 @@ function LoginContent() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/pages/browse';
 
   useEffect(() => {
     const message = searchParams.get('message');
+    const authError = searchParams.get('error');
+
     if (message) {
       setSuccess(message);
+    }
+
+    if (authError) {
+      switch (authError) {
+        case 'CredentialsSignin':
+          setError('Invalid email or password');
+          break;
+        case 'AccessDenied':
+          setError('Access denied');
+          break;
+        default:
+          setError('Sign in failed. Please try again.');
+          break;
+      }
     }
   }, [searchParams]);
 
@@ -34,15 +50,16 @@ function LoginContent() {
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: false
+        redirect: false,
+        callbackUrl
       });
 
       if (result?.error) {
-        setError('Invalid credentials');
+        setError(result.error === 'CredentialsSignin' ? 'Invalid email or password' : result.error);
       } else {
-        router.push('/');
+        window.location.href = result?.url || callbackUrl;
       }
-    } catch (error) {
+    } catch {
       setError('An error occurred');
     } finally {
       setIsLoading(false);

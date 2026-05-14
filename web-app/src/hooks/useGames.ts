@@ -1,5 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Game } from '@/types/game';
+import type { GameFilters } from '@/types/game-filters';
+
+type GamesApiResponse = {
+  success: boolean;
+  data: Game[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  message?: string;
+};
+
+const DEFAULT_GAME_FILTERS: GameFilters = {
+  platform: 'All Platforms',
+  genre: 'All Genres',
+  searchQuery: ''
+};
 
 interface UseGamesReturn {
   games: Game[];
@@ -7,11 +24,7 @@ interface UseGamesReturn {
   loading: boolean;
   error: string | null;
   refetch: () => void;
-  applyFilters: (filters: {
-    platform: string;
-    genre: string;
-    searchQuery: string;
-  }) => void;
+  applyFilters: (filters: GameFilters) => void;
   filteringMode: 'client' | 'server';
   pagination: {
     page: number;
@@ -25,64 +38,19 @@ interface UseGamesReturn {
 }
 
 export const useGames = (itemsPerPage: number = 4): UseGamesReturn => {
-  const [allGames, setAllGames] = useState<Game[]>([]);
   const [filteredGames, setFilteredGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filteringMode, setFilteringMode] = useState<'client' | 'server'>('client');
+  const [filteringMode] = useState<'client' | 'server'>('server');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [currentFilters, setCurrentFilters] = useState<GameFilters>({
+    ...DEFAULT_GAME_FILTERS
+  });
   const limit = itemsPerPage;
-
-  // Determine if we should use server-side filtering
-  const shouldUseServerSide = (filters: {
-    platform: string;
-    genre: string;
-    searchQuery: string;
-  }) => {
-    // Use server-side if:
-    // 1. Search query is complex (special characters, long text)
-    // 2. Dataset is large (future-proofing)
-    // 3. Search query is very short (to get better results)
-    const searchComplexity = filters.searchQuery.length > 20 || /[\W_]/.test(filters.searchQuery);
-    const searchTooShort = filters.searchQuery.length > 0 && filters.searchQuery.length < 2;
-    
-    return searchComplexity || searchTooShort;
-  };
-
-  // Fetch all games once on mount
-  const fetchAllGames = async (currentPage = 1) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`/api/games?page=${currentPage}&limit=${limit}`);
-      const result = await response.json();
-
-      if (result.success) {
-        setAllGames(result.data);
-        setFilteredGames(result.data);
-        setTotal(result.total);
-        setTotalPages(result.totalPages);
-        setPage(result.page);
-        console.log('Games fetched:', result.data.length, 'Total:', result.total); // Debug log
-      } else {
-        setError('Failed to fetch games');
-      }
-    } catch (err) {
-      setError('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Server-side filtering with partial refresh
-  const fetchFilteredGames = useCallback(async (filters: {
-    platform: string;
-    genre: string;
-    searchQuery: string;
-  }, currentPage = 1) => {
+ 
+  const fetchGames = useCallback(async (filters: GameFilters, currentPage = 1) => {
     try {
       setLoading(true);
       setError(null);
@@ -103,8 +71,6 @@ export const useGames = (itemsPerPage: number = 4): UseGamesReturn => {
 
       const url = `/api/games?${params.toString()}`;
 
-      console.log('Server-side filtering with URL:', url); // Debug log
-
       // Use AbortController to handle component unmount
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
@@ -115,91 +81,38 @@ export const useGames = (itemsPerPage: number = 4): UseGamesReturn => {
       });
 
       clearTimeout(timeoutId);
-      const result = await response.json();
+      const result: GamesApiResponse = await response.json();
 
       if (result.success) {
         setFilteredGames(result.data);
         setTotal(result.total);
         setTotalPages(result.totalPages);
         setPage(result.page);
-        console.log('Server filtered games:', result.data.length); // Debug log
       } else {
-        setError('Failed to fetch filtered games');
+        setError(result.message || 'Failed to fetch games');
       }
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('Request aborted');
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
         return;
       }
-      setError('Network error during filtering');
+      setError('Network error while loading games');
     } finally {
       setLoading(false);
     }
   }, [limit]);
 
-  // Client-side filtering
-  const applyClientSideFilters = (filters: {
-    platform: string;
-    genre: string;
-    searchQuery: string;
-  }) => {
-    console.log('Applying client-side filters:', filters); // Debug log
-
-    let filtered = [...allGames];
-
-    // Filter by platform
-    if (filters.platform && filters.platform !== 'All Platforms') {
-      filtered = filtered.filter(game => game.platform === filters.platform);
-    }
-
-    // Filter by genre
-    if (filters.genre && filters.genre !== 'All Genres') {
-      filtered = filtered.filter(game => game.genre === filters.genre);
-    }
-
-    // Filter by search query
-    if (filters.searchQuery) {
-      filtered = filtered.filter(game =>
-        game.title.toLowerCase().includes(filters.searchQuery.toLowerCase())
-      );
-    }
-
-    setTotal(filtered.length);
-    setTotalPages(Math.ceil(filtered.length / limit));
-
-    // Apply pagination
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedFiltered = filtered.slice(startIndex, endIndex);
-
-    setFilteredGames(paginatedFiltered);
-    console.log('Client filtered games:', paginatedFiltered.length, 'Total:', filtered.length); // Debug log
-  };
-
-  // Hybrid filtering logic
-  const applyFilters = (filters: {
-    platform: string;
-    genre: string;
-    searchQuery: string;
-  }) => {
-    const useServerSide = shouldUseServerSide(filters);
-    setFilteringMode(useServerSide ? 'server' : 'client');
-    
-    if (useServerSide) {
-      fetchFilteredGames(filters);
-    } else {
-      applyClientSideFilters(filters);
-    }
+  const applyFilters = (filters: GameFilters) => {
+    setCurrentFilters(filters);
+    fetchGames(filters, 1);
   };
 
   useEffect(() => {
-    fetchAllGames();
-  }, []);
+    fetchGames(DEFAULT_GAME_FILTERS, 1);
+  }, [fetchGames]);
 
   // Pagination functions
   const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-    fetchAllGames(newPage);
+    fetchGames(currentFilters, newPage);
   };
 
   const nextPage = () => {
@@ -219,7 +132,7 @@ export const useGames = (itemsPerPage: number = 4): UseGamesReturn => {
     filteredGames,
     loading,
     error,
-    refetch: fetchAllGames,
+    refetch: () => fetchGames(currentFilters, page),
     applyFilters,
     filteringMode,
     pagination: {

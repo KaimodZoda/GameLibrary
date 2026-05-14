@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest } from 'next/server';
+import { LoanStatus, ReturnStatus } from '@prisma/client';
 import { requireAuth, getUserId } from '@/lib/auth';
 import { createReturnSchema } from '@/lib/validations';
+import { toPrismaReturnMethod, toPublicReturnMethod } from '@/lib/return-method';
 import { ZodError } from 'zod';
 import { sanitizeInput } from '@/lib/sanitize';
 
@@ -22,10 +24,10 @@ export async function PUT(
     const userId = getUserId(authResult);
 
     // Get the loan
-    const loan = await prisma.loan.findUnique({
-      where: { 
+    const loan = await prisma.loan.findFirst({
+      where: {
         id: loanId,
-        userId // Ensure user owns this loan
+        userId
       },
       include: {
         game: true,
@@ -40,12 +42,19 @@ export async function PUT(
       );
     }
 
+    if (loan.status !== LoanStatus.picked_up) {
+      return NextResponse.json(
+        { success: false, message: 'Only picked up loans can be returned' },
+        { status: 400 }
+      );
+    }
+
     // Check if loan already has a return request
     const existingReturn = await prisma.return.findUnique({
       where: { loanId }
     });
 
-    if (existingReturn && existingReturn.status === 'completed') {
+    if (existingReturn && existingReturn.status === ReturnStatus.completed) {
       return NextResponse.json(
         { success: false, message: 'Loan already returned' },
         { status: 400 }
@@ -64,11 +73,11 @@ export async function PUT(
     const returnRecord = await prisma.return.create({
       data: {
         loanId,
-        returnMethod,
+        returnMethod: toPrismaReturnMethod(returnMethod),
         trackingNumber,
         returnNotes: sanitizedReturnNotes,
         estimatedReturnDate: estimatedReturnDate ? new Date(estimatedReturnDate) : null,
-        status: 'pending'
+        status: ReturnStatus.pending
       }
     });
 
@@ -78,7 +87,10 @@ export async function PUT(
       data: {
         loan,
         game: loan.game,
-        returnRecord
+        returnRecord: {
+          ...returnRecord,
+          returnMethod: toPublicReturnMethod(returnRecord.returnMethod)
+        }
       }
     });
   } catch (error) {

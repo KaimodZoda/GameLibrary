@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, UserRole } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -8,7 +8,7 @@ async function updateAdminPassword() {
   
   try {
     // Find the admin user
-    const admin = await (prisma as any).user.findUnique({
+    const admin = await prisma.user.findUnique({
       where: { email: 'admin@gamelibrary.com' }
     })
 
@@ -19,12 +19,12 @@ async function updateAdminPassword() {
       const adminPassword = 'GameLibrary@2024!'
       const hashedPassword = await bcrypt.hash(adminPassword, 12)
       
-      const newAdmin = await (prisma as any).user.create({
+      const newAdmin = await prisma.user.create({
         data: {
           email: 'admin@gamelibrary.com',
           password: hashedPassword,
           name: 'Admin User',
-          role: 'ADMIN'
+          role: UserRole.ADMIN
         }
       })
       
@@ -35,11 +35,11 @@ async function updateAdminPassword() {
       const newAdminPassword = 'GameLibrary@2024!'
       const hashedPassword = await bcrypt.hash(newAdminPassword, 12)
       
-      const updatedAdmin = await (prisma as any).user.update({
+      const updatedAdmin = await prisma.user.update({
         where: { email: 'admin@gamelibrary.com' },
         data: {
           password: hashedPassword,
-          role: 'ADMIN' // Ensure role is ADMIN
+          role: UserRole.ADMIN
         }
       })
       

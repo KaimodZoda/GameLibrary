@@ -1,55 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import StatCard from '@/components/StatCard';
-import { useLoans } from '@/hooks/useLoans';
-import { getDisplayStatus } from '@/lib/stats';
+import { useLoans, type UserLoan } from '@/hooks/useLoans';
+import { getDisplayStatus, getLendingState } from '@/lib/lending-state';
+import type { ReturnSummary } from '@/types/lending';
 
 // Force dynamic rendering to prevent prerendering
 export const dynamic = 'force-dynamic';
 
 export default function MyLoans() {
   const router = useRouter();
-  const { data: session } = useSession();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showReturnConfirmModal, setShowReturnConfirmModal] = useState(false);
   const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
   const [showCancelReturnConfirmModal, setShowCancelReturnConfirmModal] = useState(false);
-  const [selectedLoan, setSelectedLoan] = useState<any>(null);
-  const [selectedReturnRequest, setSelectedReturnRequest] = useState<any>(null);
-  const { loans, loading, error, refetch, returnGame, returnRequests, cancelLoan, cancelReturnRequest } = useLoans();
-  const [stats, setStats] = useState({
-    totalGames: 0,
-    availableGames: 0,
-    borrowedGames: 0,
-    pendingLoans: 0,
-    returnInProgressLoans: 0,
-    overdueLoans: 0,
-    returnedLoans: 0
-  });
-
-  // Fetch stats when component mounts or session changes
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const userId = session?.user?.id;
-        const url = userId ? `/api/stats?userId=${userId}` : '/api/stats';
-        const response = await fetch(url);
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            setStats(result.data);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      }
-    };
-    
-    fetchStats();
-  }, [session]);
+  const [selectedLoan, setSelectedLoan] = useState<UserLoan | null>(null);
+  const [selectedReturnRequest, setSelectedReturnRequest] = useState<ReturnSummary | null>(null);
+  const { loans, returnRequests, stats, loading, error, cancelLoan, cancelReturnRequest } = useLoans();
 
   const getStatusColor = (displayStatus: string) => {
     switch (displayStatus) {
@@ -74,7 +44,7 @@ export default function MyLoans() {
     }
   };
 
-  const handleDetailsClick = (loan: any) => {
+  const handleDetailsClick = (loan: UserLoan) => {
     setSelectedLoan(loan);
     setShowDetailsModal(true);
   };
@@ -84,13 +54,14 @@ export default function MyLoans() {
     setSelectedLoan(null);
   };
 
-  const handleReturnClick = async (loan: any) => {
+  const handleReturnClick = async (loan: UserLoan) => {
     // Show confirmation modal instead of direct return
     setSelectedLoan(loan);
     setShowReturnConfirmModal(true);
   };
 
   const handleConfirmReturn = () => {
+    if (!selectedLoan) return;
     // Redirect to return page with loan ID
     router.push(`/pages/return?loanId=${selectedLoan.id}`);
   };
@@ -100,7 +71,7 @@ export default function MyLoans() {
     setSelectedLoan(null);
   };
 
-  const handleCancelClick = (loan: any) => {
+  const handleCancelClick = (loan: UserLoan) => {
     setSelectedLoan(loan);
     setShowCancelConfirmModal(true);
   };
@@ -112,16 +83,6 @@ export default function MyLoans() {
     if (result.success) {
       setShowCancelConfirmModal(false);
       setSelectedLoan(null);
-      // Refetch stats to update the numbers
-      const userId = session?.user?.id;
-      const url = userId ? `/api/stats?userId=${userId}` : '/api/stats';
-      const response = await fetch(url);
-      if (response.ok) {
-        const statsResult = await response.json();
-        if (statsResult.success) {
-          setStats(statsResult.data);
-        }
-      }
     }
   };
 
@@ -130,7 +91,7 @@ export default function MyLoans() {
     setSelectedLoan(null);
   };
 
-  const handleCancelReturnClick = (loan: any, returnRequest: any) => {
+  const handleCancelReturnClick = (loan: UserLoan, returnRequest: ReturnSummary) => {
     setSelectedLoan(loan);
     setSelectedReturnRequest(returnRequest);
     setShowCancelReturnConfirmModal(true);
@@ -144,16 +105,6 @@ export default function MyLoans() {
       setShowCancelReturnConfirmModal(false);
       setSelectedLoan(null);
       setSelectedReturnRequest(null);
-      // Refetch stats to update the numbers
-      const userId = session?.user?.id;
-      const url = userId ? `/api/stats?userId=${userId}` : '/api/stats';
-      const response = await fetch(url);
-      if (response.ok) {
-        const statsResult = await response.json();
-        if (statsResult.success) {
-          setStats(statsResult.data);
-        }
-      }
     }
   };
 
@@ -168,6 +119,8 @@ export default function MyLoans() {
   const statusBadgeClass = "inline-flex px-2 py-1 text-xs font-semibold rounded-full";
   const actionButtonClass = "text-indigo-600 hover:text-indigo-900 mr-3";
   const secondaryButtonClass = "text-gray-600 hover:text-gray-900";
+  const getLoanState = (loan: UserLoan) => getLendingState(loan, returnRequests);
+  const getLoanDisplayStatus = (loan: UserLoan) => getDisplayStatus(loan, returnRequests);
 
   return (
     <>
@@ -187,146 +140,170 @@ export default function MyLoans() {
             <StatCard type="returned" value={stats.returnedLoans} />
           </div>
 
-          {/* Loans Table */}
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Loan History</h2>
+          {loading ? (
+            <div className="bg-white shadow rounded-lg p-10">
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-indigo-600"></div>
+                <h2 className="mt-4 text-lg font-medium text-gray-900">Loading your loans</h2>
+                <p className="mt-2 text-sm text-gray-600">Fetching your current borrowing history...</p>
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className={tableHeaderClass}>
-                      Game
-                    </th>
-                    <th className={tableHeaderClass}>
-                      Platform
-                    </th>
-                    <th className={tableHeaderClass}>
-                      Borrow Date
-                    </th>
-                    <th className={tableHeaderClass}>
-                      Due Date
-                    </th>
-                    <th className={tableHeaderClass}>
-                      Status
-                    </th>
-                    <th className={tableHeaderClass}>
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {loans.map((loan) => (
-                    <tr key={loan.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center justify-flex-start ml-6">
-                          <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">
-                            <i className="fas fa-gamepad text-gray-500"></i>
+          ) : error ? (
+            <div className="bg-white shadow rounded-lg p-10">
+              <div className="flex flex-col items-center justify-center text-center">
+                <i className="fas fa-exclamation-circle text-4xl text-red-500"></i>
+                <h2 className="mt-4 text-lg font-medium text-gray-900">Could not load your loans</h2>
+                <p className="mt-2 text-sm text-gray-600">{error}</p>
+              </div>
+            </div>
+          ) : loans.length > 0 ? (
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-medium text-gray-900">Loan History</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className={tableHeaderClass}>
+                        Game
+                      </th>
+                      <th className={tableHeaderClass}>
+                        Platform
+                      </th>
+                      <th className={tableHeaderClass}>
+                        Borrow Date
+                      </th>
+                      <th className={tableHeaderClass}>
+                        Due Date
+                      </th>
+                      <th className={tableHeaderClass}>
+                        Status
+                      </th>
+                      <th className={tableHeaderClass}>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {loans.map((loan) => (
+                      <tr key={loan.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center justify-flex-start ml-6">
+                            <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                              <i className="fas fa-gamepad text-gray-500"></i>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{loan.game.title}</div>
+                              <div className="text-xs text-gray-500">{loan.game.platform}</div>
+                            </div>
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{loan.game.title}</div>
-                            <div className="text-xs text-gray-500">{loan.game.platform}</div>
+                        </td>
+                        <td className={tableCellClass}>
+                          {loan.game.platform}
+                        </td>
+                        <td className={tableCellClass}>
+                          {new Date(loan.dateBorrowed).toLocaleDateString()}
+                        </td>
+                        <td className={tableCellClass}>
+                          {new Date(loan.dueDate).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex justify-center">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getLoanDisplayStatus(loan))}`}>
+                              {getLoanDisplayStatus(loan)}
+                            </span>
                           </div>
-                        </div>
-                      </td>
-                      <td className={tableCellClass}>
-                        {loan.game.platform}
-                      </td>
-                      <td className={tableCellClass}>
-                        {new Date(loan.dateBorrowed).toLocaleDateString()}
-                      </td>
-                      <td className={tableCellClass}>
-                        {new Date(loan.dueDate).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex justify-center">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getDisplayStatus(loan, returnRequests))}`}>
-                            {getDisplayStatus(loan, returnRequests)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center justify-center">
-                          <div>
-                            {(() => {
-                              const status = getDisplayStatus(loan, returnRequests);
-                              if (status === 'Returned') {
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center justify-center">
+                            <div>
+                              {(() => {
+                                const lendingState = getLoanState(loan);
+
+                                if (lendingState === 'returned') {
+                                  return (
+                                    <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                      Details
+                                    </button>
+                                  );
+                                }
+
+                                if (lendingState === 'return_pending' || lendingState === 'return_approved') {
+                                  const returnRequest = returnRequests.find((req) => req.loanId === loan.id);
+                                  if (!returnRequest) {
+                                    return (
+                                      <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                        Details
+                                      </button>
+                                    );
+                                  }
+                                  return (
+                                    <>
+                                      <button className="text-red-600 hover:text-red-900 mr-3" onClick={() => handleCancelReturnClick(loan, returnRequest)}>
+                                        Cancel Return
+                                      </button>
+                                      <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                        Details
+                                      </button>
+                                    </>
+                                  );
+                                }
+
+                                if (lendingState === 'active' || lendingState === 'overdue') {
+                                  return (
+                                    <>
+                                      {loan.game.platform && (
+                                        <button className={actionButtonClass} onClick={() => handleReturnClick(loan)}>
+                                          Return
+                                        </button>
+                                      )}
+                                      <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                        Details
+                                      </button>
+                                    </>
+                                  );
+                                }
+
+                                if (lendingState === 'borrow_pending' || lendingState === 'borrow_approved') {
+                                  return (
+                                    <>
+                                      <button className="text-red-600 hover:text-red-900 mr-3" onClick={() => handleCancelClick(loan)}>
+                                        Cancel
+                                      </button>
+                                      <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
+                                        Details
+                                      </button>
+                                    </>
+                                  );
+                                }
+
                                 return (
                                   <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
                                     Details
                                   </button>
                                 );
-                              }
-                              if (status === 'Return Pending' || status === 'Returning') {
-                                const returnRequest = returnRequests.find(req => req.loanId === loan.id);
-                                return (
-                                  <>
-                                    <button className="text-red-600 hover:text-red-900 mr-3" onClick={() => handleCancelReturnClick(loan, returnRequest)}>
-                                      Cancel Return
-                                    </button>
-                                    <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
-                                      Details
-                                    </button>
-                                  </>
-                                );
-                              }
-                              // Only show Return button for Active loans
-                              if (status === 'Active') {
-                                return (
-                                  <>
-                                    {loan.game.platform && (
-                                      <button className={actionButtonClass} onClick={() => handleReturnClick(loan)}>
-                                        Return
-                                      </button>
-                                    )}
-                                    <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
-                                      Details
-                                    </button>
-                                  </>
-                                );
-                              }
-                              // For Borrow Pending and Borrow Approved, show Cancel and Details
-                              if (status === 'Borrow Pending' || status === 'Borrow Approved') {
-                                return (
-                                  <>
-                                    <button className="text-red-600 hover:text-red-900 mr-3" onClick={() => handleCancelClick(loan)}>
-                                      Cancel
-                                    </button>
-                                    <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
-                                      Details
-                                    </button>
-                                  </>
-                                );
-                              }
-                              // For other statuses (Overdue), show only Details
-                              return (
-                                <button className={secondaryButtonClass} onClick={() => handleDetailsClick(loan)}>
-                                  Details
-                                </button>
-                              );
-                            })()}
+                              })()}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-
-          {loans.length === 0 && (
+          ) : (
             <div className="text-center py-12">
               <i className="fas fa-book text-gray-400 text-5xl mb-4"></i>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No loans yet</h3>
-              <p className="text-gray-600 mb-4">You haven't borrowed any games yet.</p>
-              <a 
+              <p className="text-gray-600 mb-4">You haven&apos;t borrowed any games yet.</p>
+              <Link
                 href="/"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
               >
                 Browse Games
-              </a>
+              </Link>
             </div>
           )}
         </div>
@@ -477,8 +454,8 @@ export default function MyLoans() {
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-gray-500">Current Status</p>
-                  <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getDisplayStatus(selectedLoan, returnRequests))}`}>
-                    {getDisplayStatus(selectedLoan, returnRequests)}
+                  <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getLoanDisplayStatus(selectedLoan))}`}>
+                    {getLoanDisplayStatus(selectedLoan)}
                   </span>
                 </div>
               </div>

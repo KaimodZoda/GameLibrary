@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { UserRole } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { createUserSchema } from '@/lib/validations';
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
         name: name.trim(),
         email: email.toLowerCase().trim(),
         password: hashedPassword,
-        role: 'USER'
+        role: UserRole.USER
       }
     });
 

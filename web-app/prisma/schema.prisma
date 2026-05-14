@@ -2,10 +2,46 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Migration checklist: see prisma/MIGRATION_CHECKLIST.md
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum LoanStatus {
+  pending
+  approved
+  picked_up
+  returned
+  rejected
+}
+
+enum ReturnStatus {
+  pending
+  approved
+  completed
+}
+
+enum ReturnMethod {
+  IN_PERSON @map("in-person")
+  DROP_BOX  @map("drop-box")
+  SHIPPING  @map("shipping")
+  COURIER   @map("courier")
+}
+
+enum AdminActionType {
+  loan_approved
+  loan_rejected
+  return_approved
+  return_rejected
+  return_completed
+  loan_picked_up
 }
 
 model User {
@@ -13,7 +49,7 @@ model User {
   email         String        @unique
   password      String
   name          String
-  role          String        @default("USER")
+  role          UserRole      @default(USER)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -48,7 +84,7 @@ model Loan {
   completedBy      Int?
   pickupDate       DateTime?
   completedAt       DateTime?
-  status           String        @default("pending") // 'pending', 'approved', 'completed'
+  status           LoanStatus    @default(pending) // 'pending', 'approved', 'picked_up', 'returned', 'rejected'
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   
@@ -56,6 +92,7 @@ model Loan {
   user             User          @relation(fields: [userId], references: [id])
   game             Game          @relation(fields: [gameId], references: [id])
   approver         User?         @relation("LoanApprover", fields: [approvedBy], references: [id])
+  returnRequest    Return?
   adminActions     AdminAction[]
   @@unique([userId, gameId, dateBorrowed])
 }
@@ -69,14 +106,15 @@ model Return {
   completedBy       Int?
   completedAt        DateTime?
   estimatedReturnDate DateTime?
-  returnMethod        String?   // 'in-person', 'drop-box', 'shipping', 'courier'
+  returnMethod        ReturnMethod?
   trackingNumber      String?
   returnNotes         String?
-  status              String    @default("pending") // 'pending', 'approved', 'completed'
+  status              ReturnStatus @default(pending) // 'pending', 'approved', 'completed'
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   
   // Relations
+  loan         Loan        @relation(fields: [loanId], references: [id])
   adminActions AdminAction[]
 }
 
@@ -85,7 +123,7 @@ model AdminAction {
   loanId       Int?
   returnId     Int?
   adminId      Int
-  action       String   // 'loan_approved', 'loan_rejected', 'return_approved', 'return_rejected'
+  action       AdminActionType
   actionDate   DateTime @default(now())
   notes        String?
   createdAt    DateTime @default(now())

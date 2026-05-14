@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, ReturnMethod } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -144,7 +144,7 @@ async function main() {
       gameId: createdGames[2].id, // FIFA 24
       dateBorrowed: threeDaysAgo,
       dueDate: nextWeek,
-      status: 'completed',
+      status: 'picked_up',
       approvedAt: threeDaysAgo,
       approvedBy: admin.id,
       pickupDate: twoDaysAgo
@@ -158,7 +158,7 @@ async function main() {
       gameId: createdGames[6].id, // Use Call of Duty for overdue test
       dateBorrowed: lastWeek,
       dueDate: twoDaysAgo, // Due date in the past
-      status: 'completed',
+      status: 'picked_up',
       approvedAt: lastWeek,
       approvedBy: admin.id,
       pickupDate: lastWeek
@@ -174,7 +174,7 @@ async function main() {
       gameId: createdGames[3].id, // Stardew Valley
       dateBorrowed: threeDaysAgo,
       dueDate: nextWeek,
-      status: 'completed',
+      status: 'picked_up',
       approvedAt: threeDaysAgo,
       approvedBy: admin.id,
       pickupDate: threeDaysAgo
@@ -186,7 +186,7 @@ async function main() {
     data: {
       loanId: loan4.id,
       status: 'pending',
-      returnMethod: 'in-person',
+      returnMethod: ReturnMethod.IN_PERSON,
       returnNotes: 'Game is in good condition'
     }
   })
@@ -198,7 +198,7 @@ async function main() {
       gameId: createdGames[4].id, // Mario Kart
       dateBorrowed: threeDaysAgo,
       dueDate: nextWeek,
-      status: 'completed',
+      status: 'picked_up',
       approvedAt: threeDaysAgo,
       approvedBy: admin.id,
       pickupDate: threeDaysAgo
@@ -212,7 +212,7 @@ async function main() {
       status: 'approved',
       approvedAt: yesterday,
       approvedBy: admin.id,
-      returnMethod: 'drop-box',
+      returnMethod: ReturnMethod.DROP_BOX,
       trackingNumber: 'TRK123456',
       returnNotes: 'Will return via drop box'
     }
@@ -225,7 +225,7 @@ async function main() {
       gameId: createdGames[5].id, // Minecraft
       dateBorrowed: threeDaysAgo,
       dueDate: nextWeek,
-      status: 'completed',
+      status: 'returned',
       approvedAt: threeDaysAgo,
       approvedBy: admin.id,
       pickupDate: threeDaysAgo,
@@ -243,7 +243,7 @@ async function main() {
       approvedBy: admin.id,
       completedAt: yesterday,
       completedBy: admin.id,
-      returnMethod: 'in-person',
+      returnMethod: ReturnMethod.IN_PERSON,
       returnNotes: 'Game returned in excellent condition'
     }
   })

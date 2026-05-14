@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
+import { AdminActionType, LoanStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { adminNotesSchema } from '@/lib/validations';
@@ -41,7 +42,7 @@ export async function PUT(
       );
     }
 
-    if (loan.status !== 'pending') {
+    if (loan.status !== LoanStatus.pending) {
       return NextResponse.json(
         { success: false, message: 'Loan is not in pending status' },
         { status: 400 }
@@ -52,7 +53,7 @@ export async function PUT(
     const updatedLoan = await prisma.loan.update({
       where: { id: loanId },
       data: {
-        status: 'approved',
+        status: LoanStatus.approved,
         approvedAt: new Date(),
         approvedBy: adminId
       }
@@ -63,7 +64,7 @@ export async function PUT(
       data: {
         adminId,
         loanId,
-        action: 'loan_approved',
+        action: AdminActionType.loan_approved,
         notes: sanitizedNotes || 'Loan request approved'
       }
     });
