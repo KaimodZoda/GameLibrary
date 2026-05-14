@@ -8,6 +8,7 @@
     "services/*"
   ],
   "scripts": {
+    "build": "npm run build:web",
     "dev:web": "cd web-app && npm run dev",
     "build:web": "cd web-app && npm run build",
     "start:web": "cd web-app && npm start",
