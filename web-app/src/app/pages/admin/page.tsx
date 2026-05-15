@@ -8,6 +8,7 @@ import GameList from '@/components/admin/GameList';
 import UserManagement from '@/components/admin/UserManagement';
 import RequestManagement from '@/components/admin/RequestManagementUnified';
 import AdminActions from '@/components/admin/AdminActions';
+import AdminGlobalStats from '@/components/admin/AdminGlobalStats';
 
 // Force dynamic rendering to prevent prerendering
 export const dynamic = 'force-dynamic';
@@ -76,6 +77,8 @@ function AdminPageContent() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Game Library Admin</h1>
             <p className="text-gray-600">Manage your game collection</p>
           </div>
+
+          <AdminGlobalStats />
 
           {/* Navigation Tabs */}
           <div className="border-b border-gray-200 mb-8">

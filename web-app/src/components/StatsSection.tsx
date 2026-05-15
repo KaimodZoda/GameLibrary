@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import StatCard from './StatCard';
 
@@ -26,17 +26,12 @@ const StatsSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchStats();
-  }, [session]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       const userId = session?.user?.id;
-      const isUserAdmin = session?.user?.role === 'ADMIN';
-      // Admins get global stats, regular users get their own stats
-      const url = isUserAdmin ? '/api/stats' : (userId ? `/api/stats?userId=${userId}` : '/api/stats');
+      // Browse stats should always reflect the current signed-in user.
+      const url = userId ? `/api/stats?userId=${userId}` : '/api/stats';
       const response = await fetch(url);
       const result = await response.json();
 
@@ -45,12 +40,16 @@ const StatsSection = () => {
       } else {
         setError(result.message || 'Failed to fetch stats');
       }
-    } catch (err) {
+    } catch {
       setError('Network error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   if (loading) {
     return (
