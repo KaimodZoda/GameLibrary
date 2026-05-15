@@ -10,6 +10,16 @@ interface GlobalStatsData {
   pendingLoans: number;
   returnInProgressLoans: number;
   overdueLoans: number;
+  adminStats: {
+    borrowPending: number;
+    borrowApproved: number;
+    active: number;
+    overdue: number;
+    returnPending: number;
+    returnApproved: number;
+    returned: number;
+    rejected: number;
+  } | null;
 }
 
 const defaultStats: GlobalStatsData = {
@@ -18,8 +28,17 @@ const defaultStats: GlobalStatsData = {
   borrowedGames: 0,
   pendingLoans: 0,
   returnInProgressLoans: 0,
-  overdueLoans: 0
+  overdueLoans: 0,
+  adminStats: null
 };
+
+const SECTION_TITLE_CLASS = 'text-sm font-semibold text-gray-700 uppercase tracking-wide';
+const GROUP_TITLE_CLASS = 'text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2';
+const SUMMARY_WRAPPER_CLASS = 'rounded-lg border border-gray-200 p-4 md:p-5 mb-6 bg-gray-50/50';
+const BREAKDOWN_WRAPPER_CLASS = 'rounded-lg border border-gray-200 p-4 md:p-5 bg-white';
+const SUMMARY_GRID_CLASS = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6';
+const BREAKDOWN_GRID_CLASS = 'grid grid-cols-1 lg:grid-cols-2 gap-4';
+const PAIR_GRID_CLASS = 'grid grid-cols-1 sm:grid-cols-2 gap-6';
 
 const AdminGlobalStats = () => {
   const [stats, setStats] = useState<GlobalStatsData>(defaultStats);
@@ -30,7 +49,7 @@ const AdminGlobalStats = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await fetch('/api/stats');
+      const response = await fetch('/api/stats?detail=admin');
       const result = await response.json();
 
       if (result.success) {
@@ -89,16 +108,67 @@ const AdminGlobalStats = () => {
     );
   }
 
+  const borrowPending = stats.adminStats?.borrowPending ?? 0;
+  const borrowApproved = stats.adminStats?.borrowApproved ?? 0;
+  const onTime = stats.adminStats?.active ?? 0;
+  const overdue = stats.adminStats?.overdue ?? 0;
+  const returnPending = stats.adminStats?.returnPending ?? 0;
+  const returnApproved = stats.adminStats?.returnApproved ?? 0;
+  const returned = stats.adminStats?.returned ?? 0;
+  const rejected = stats.adminStats?.rejected ?? 0;
+
+  const borrowRequests = borrowPending + borrowApproved;
+  const checkedOut = onTime + overdue;
+  const returnsInProgress = returnPending + returnApproved;
+  const closed = returned + rejected;
+
   return (
     <div className="mb-8">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Global Overview</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-        <StatCard type="total-games" value={stats.totalGames} />
-        <StatCard type="available" value={stats.availableGames} />
-        <StatCard type="pending" value={stats.pendingLoans} />
-        <StatCard type="return-in-progress" value={stats.returnInProgressLoans} />
-        <StatCard type="borrowed" value={stats.borrowedGames} />
-        <StatCard type="overdue" value={stats.overdueLoans} />
+      <div className={SUMMARY_WRAPPER_CLASS}>
+        <h3 className={`${SECTION_TITLE_CLASS} mb-3`}>Summary</h3>
+        <div className={SUMMARY_GRID_CLASS}>
+          <StatCard type="total-games" value={stats.totalGames} />
+          <StatCard type="available" value={stats.availableGames} />
+          <StatCard type="borrow-requests" value={borrowRequests} />
+          <StatCard type="checked-out" value={checkedOut} />
+          <StatCard type="returns-in-progress" value={returnsInProgress} />
+          <StatCard type="closed" value={closed} />
+        </div>
+      </div>
+
+      <div className={BREAKDOWN_WRAPPER_CLASS}>
+        <h3 className={`${SECTION_TITLE_CLASS} mb-4`}>Breakdown</h3>
+        <div className={BREAKDOWN_GRID_CLASS}>
+          <div>
+            <p className={GROUP_TITLE_CLASS}>Borrow Requests</p>
+            <div className={PAIR_GRID_CLASS}>
+              <StatCard type="borrow-pending" value={borrowPending} />
+              <StatCard type="borrow-approved" value={borrowApproved} />
+            </div>
+          </div>
+          <div>
+            <p className={GROUP_TITLE_CLASS}>Checked Out</p>
+            <div className={PAIR_GRID_CLASS}>
+              <StatCard type="on-time" value={onTime} />
+              <StatCard type="overdue" value={overdue} />
+            </div>
+          </div>
+          <div>
+            <p className={GROUP_TITLE_CLASS}>Returns In Progress</p>
+            <div className={PAIR_GRID_CLASS}>
+              <StatCard type="return-pending" value={returnPending} />
+              <StatCard type="return-approved" value={returnApproved} />
+            </div>
+          </div>
+          <div>
+            <p className={GROUP_TITLE_CLASS}>Closed</p>
+            <div className={PAIR_GRID_CLASS}>
+              <StatCard type="returned" value={returned} />
+              <StatCard type="rejected" value={rejected} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

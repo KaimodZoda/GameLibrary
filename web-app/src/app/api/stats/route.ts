@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { calculateStats } from '@/lib/stats';
+import { calculateAdminStats, calculateStats } from '@/lib/stats';
 import { requireAuth, getUserId, isAdmin } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -15,7 +15,19 @@ export async function GET(request: NextRequest) {
     const requesterIsAdmin = isAdmin(authResult);
     const { searchParams } = new URL(request.url);
     const requestedUserIdParam = searchParams.get('userId');
+    const detail = searchParams.get('detail');
+    const includeAdminDetail = detail === 'admin';
     const requestedUserId = requestedUserIdParam ? Number.parseInt(requestedUserIdParam, 10) : null;
+
+    if (includeAdminDetail && !requesterIsAdmin) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Access denied'
+        },
+        { status: 403 }
+      );
+    }
 
     if (requestedUserIdParam && (requestedUserId === null || Number.isNaN(requestedUserId))) {
       return NextResponse.json(
@@ -65,6 +77,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     const stats = calculateStats(allLoans, returnRequests);
+    const adminStats = includeAdminDetail ? calculateAdminStats(allLoans, returnRequests) : null;
 
     // Game counts
     const [totalGames, availableGames] = await Promise.all([
@@ -89,7 +102,8 @@ export async function GET(request: NextRequest) {
         pendingLoans: stats.pendingLoans,
         overdueLoans: stats.overdueLoans,
         returnInProgressLoans: stats.returnInProgressLoans,
-        returnedLoans: stats.returnedLoans
+        returnedLoans: stats.returnedLoans,
+        adminStats
       }
     }, {
       headers: {

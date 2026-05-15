@@ -1,7 +1,25 @@
 'use client';
 
 interface StatCardProps {
-  type: 'total-games' | 'available' | 'borrowed' | 'pending' | 'returned' | 'return-in-progress' | 'overdue';
+  type:
+    | 'total-games'
+    | 'available'
+    | 'borrowed'
+    | 'checked-out'
+    | 'pending'
+    | 'borrow-requests'
+    | 'returned'
+    | 'return-in-progress'
+    | 'returns-in-progress'
+    | 'closed'
+    | 'overdue'
+    | 'borrow-pending'
+    | 'borrow-approved'
+    | 'active'
+    | 'on-time'
+    | 'return-pending'
+    | 'return-approved'
+    | 'rejected';
   value: number;
 }
 
@@ -29,12 +47,54 @@ const StatCard = ({ type, value }: StatCardProps) => {
           bgColor: 'bg-yellow-100',
           iconColor: 'text-yellow-600'
         };
+      case 'checked-out':
+        return {
+          title: 'Checked Out',
+          icon: 'fas fa-box-open',
+          bgColor: 'bg-yellow-100',
+          iconColor: 'text-yellow-600'
+        };
       case 'pending':
         return {
           title: 'Pending',
           icon: 'fas fa-hourglass-half',
           bgColor: 'bg-orange-100',
           iconColor: 'text-orange-600'
+        };
+      case 'borrow-requests':
+        return {
+          title: 'Borrow Requests',
+          icon: 'fas fa-clipboard-list',
+          bgColor: 'bg-orange-100',
+          iconColor: 'text-orange-600'
+        };
+      case 'borrow-pending':
+        return {
+          title: 'Borrow Pending',
+          icon: 'fas fa-hourglass-half',
+          bgColor: 'bg-orange-100',
+          iconColor: 'text-orange-600'
+        };
+      case 'borrow-approved':
+        return {
+          title: 'Borrow Approved',
+          icon: 'fas fa-thumbs-up',
+          bgColor: 'bg-blue-100',
+          iconColor: 'text-blue-600'
+        };
+      case 'active':
+        return {
+          title: 'Active',
+          icon: 'fas fa-box-open',
+          bgColor: 'bg-teal-100',
+          iconColor: 'text-teal-600'
+        };
+      case 'on-time':
+        return {
+          title: 'On Time',
+          icon: 'fas fa-box-open',
+          bgColor: 'bg-teal-100',
+          iconColor: 'text-teal-600'
         };
       case 'returned':
         return {
@@ -50,12 +110,47 @@ const StatCard = ({ type, value }: StatCardProps) => {
           bgColor: 'bg-purple-100',
           iconColor: 'text-purple-600'
         };
+      case 'returns-in-progress':
+        return {
+          title: 'Returns In Progress',
+          icon: 'fas fa-spinner',
+          bgColor: 'bg-purple-100',
+          iconColor: 'text-purple-600'
+        };
+      case 'closed':
+        return {
+          title: 'Closed',
+          icon: 'fas fa-check-double',
+          bgColor: 'bg-gray-200',
+          iconColor: 'text-gray-700'
+        };
+      case 'return-pending':
+        return {
+          title: 'Return Pending',
+          icon: 'fas fa-undo-alt',
+          bgColor: 'bg-amber-100',
+          iconColor: 'text-amber-600'
+        };
+      case 'return-approved':
+        return {
+          title: 'Return Approved',
+          icon: 'fas fa-truck',
+          bgColor: 'bg-indigo-100',
+          iconColor: 'text-indigo-600'
+        };
       case 'overdue':
         return {
           title: 'Overdue',
           icon: 'fas fa-exclamation-triangle',
           bgColor: 'bg-red-100',
           iconColor: 'text-red-600'
+        };
+      case 'rejected':
+        return {
+          title: 'Rejected',
+          icon: 'fas fa-times-circle',
+          bgColor: 'bg-gray-200',
+          iconColor: 'text-gray-600'
         };
       default:
         throw new Error(`Unknown stat card type: ${type}`);

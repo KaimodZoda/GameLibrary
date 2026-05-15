@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import {
   getDisplayStatus,
   getLendingState
 } from '@/lib/lending-state';
+import StatCard from '@/components/StatCard';
 import type { LoanSummary, ReturnSummary } from '@/types/lending';
 
 type LoanRequest = LoanSummary & {
@@ -32,10 +32,29 @@ type LoanRequest = LoanSummary & {
 
 type ReturnRequest = ReturnSummary;
 
+interface AdminQueueStats {
+  borrowPending: number;
+  borrowApproved: number;
+  returnPending: number;
+  returnApproved: number;
+}
+
+const SECTION_WRAPPER_CLASS = 'rounded-lg border border-gray-200 p-4 md:p-5 bg-gray-50/50';
+const SECTION_HEADING_CLASS = 'text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3';
+const MODAL_SECONDARY_BUTTON_CLASS = 'px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50';
+const MODAL_DANGER_BUTTON_CLASS = 'px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50';
+const MODAL_SUCCESS_BUTTON_CLASS = 'px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50';
+const MODAL_PRIMARY_BUTTON_CLASS = 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50';
+
 export default function RequestManagementUnified() {
-  const { data: session } = useSession();
   const [loans, setLoans] = useState<LoanRequest[]>([]);
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
+  const [queueStats, setQueueStats] = useState<AdminQueueStats>({
+    borrowPending: 0,
+    borrowApproved: 0,
+    returnPending: 0,
+    returnApproved: 0
+  });
   const [loading, setLoading] = useState(true);
   const [selectedLoan, setSelectedLoan] = useState<LoanRequest | null>(null);
   const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
@@ -68,10 +87,28 @@ export default function RequestManagementUnified() {
     }
   };
 
+  const fetchQueueStats = async () => {
+    try {
+      const response = await fetch('/api/stats?detail=admin');
+      const result = await response.json();
+
+      if (result.success && result.data?.adminStats) {
+        setQueueStats({
+          borrowPending: result.data.adminStats.borrowPending ?? 0,
+          borrowApproved: result.data.adminStats.borrowApproved ?? 0,
+          returnPending: result.data.adminStats.returnPending ?? 0,
+          returnApproved: result.data.adminStats.returnApproved ?? 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching queue stats:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      await Promise.all([fetchLoans(), fetchReturns()]);
+      await Promise.all([fetchLoans(), fetchReturns(), fetchQueueStats()]);
       setLoading(false);
     };
     fetchData();
@@ -89,7 +126,7 @@ export default function RequestManagementUnified() {
       });
 
       if (response.ok) {
-        await fetchLoans();
+        await Promise.all([fetchLoans(), fetchQueueStats()]);
         setShowLoanModal(false);
         setSelectedLoan(null);
         setActionNotes('');
@@ -113,8 +150,7 @@ export default function RequestManagementUnified() {
       });
       
       if (response.ok) {
-        await fetchReturns();
-        await fetchLoans(); // Refresh loans too since return completion affects loan status
+        await Promise.all([fetchReturns(), fetchLoans(), fetchQueueStats()]);
         setShowReturnModal(false);
         setSelectedReturn(null);
         setActionNotes('');
@@ -141,7 +177,7 @@ export default function RequestManagementUnified() {
   };
 
   // Get available actions based on status
-  const getAvailableActions = (loan: LoanRequest, returnRequest?: ReturnRequest) => {
+  const getAvailableActions = (loan: LoanRequest) => {
     const lendingState = getLendingState(loan, returns);
 
     switch (lendingState) {
@@ -158,11 +194,6 @@ export default function RequestManagementUnified() {
     }
   };
 
-  const pendingLoans = loans.filter((loan) => getLendingState(loan, returns) === 'borrow_pending');
-  const approvedLoans = loans.filter((loan) => getLendingState(loan, returns) === 'borrow_approved');
-  const pendingReturns = loans.filter((loan) => getLendingState(loan, returns) === 'return_pending');
-  const approvedReturns = loans.filter((loan) => getLendingState(loan, returns) === 'return_approved');
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -173,51 +204,13 @@ export default function RequestManagementUnified() {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center">
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <i className="fas fa-clock text-yellow-600 text-xl"></i>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Borrow Pending</p>
-              <p className="text-2xl font-bold text-gray-900">{pendingLoans.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <i className="fas fa-check-circle text-blue-600 text-xl"></i>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Borrow Approved</p>
-              <p className="text-2xl font-bold text-gray-900">{approvedLoans.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center">
-            <div className="p-3 bg-orange-100 rounded-lg">
-              <i className="fas fa-undo text-orange-600 text-xl"></i>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Return Pending</p>
-              <p className="text-2xl font-bold text-gray-900">{pendingReturns.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <i className="fas fa-shipping-fast text-purple-600 text-xl"></i>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Returning</p>
-              <p className="text-2xl font-bold text-gray-900">{approvedReturns.length}</p>
-            </div>
-          </div>
+      <div className={SECTION_WRAPPER_CLASS}>
+        <h3 className={SECTION_HEADING_CLASS}>Queue Overview</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard type="borrow-pending" value={queueStats.borrowPending} />
+          <StatCard type="borrow-approved" value={queueStats.borrowApproved} />
+          <StatCard type="return-pending" value={queueStats.returnPending} />
+          <StatCard type="return-approved" value={queueStats.returnApproved} />
         </div>
       </div>
 
@@ -242,7 +235,7 @@ export default function RequestManagementUnified() {
               {loans.filter(loan => loan.status !== 'rejected').map((loan) => {
                 const returnRequest = returns.find(req => req.loanId === loan.id);
                 const displayStatus = getDisplayStatus(loan, returns);
-                const availableActions = getAvailableActions(loan, returnRequest);
+                const availableActions = getAvailableActions(loan);
                 
                 return (
                   <tr key={loan.id}>
@@ -361,7 +354,7 @@ export default function RequestManagementUnified() {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => { setShowLoanModal(false); setSelectedLoan(null); setActionNotes(''); }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className={MODAL_SECONDARY_BUTTON_CLASS}
               >
                 Cancel
               </button>
@@ -370,14 +363,14 @@ export default function RequestManagementUnified() {
                   <button
                     onClick={() => handleLoanAction('reject')}
                     disabled={isProcessing}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                    className={MODAL_DANGER_BUTTON_CLASS}
                   >
                     {isProcessing ? 'Processing...' : 'Reject'}
                   </button>
                   <button
                     onClick={() => handleLoanAction('approve')}
                     disabled={isProcessing}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                    className={MODAL_SUCCESS_BUTTON_CLASS}
                   >
                     {isProcessing ? 'Processing...' : 'Approve'}
                   </button>
@@ -386,7 +379,7 @@ export default function RequestManagementUnified() {
                 <button
                   onClick={() => handleLoanAction('pickup')}
                   disabled={isProcessing}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className={MODAL_PRIMARY_BUTTON_CLASS}
                 >
                   {isProcessing ? 'Processing...' : 'Confirm Pickup'}
                 </button>
@@ -440,7 +433,7 @@ export default function RequestManagementUnified() {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => { setShowReturnModal(false); setSelectedReturn(null); setActionNotes(''); }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className={MODAL_SECONDARY_BUTTON_CLASS}
               >
                 Cancel
               </button>
@@ -448,7 +441,7 @@ export default function RequestManagementUnified() {
                 <button
                   onClick={() => handleReturnAction('approve')}
                   disabled={isProcessing}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                  className={MODAL_SUCCESS_BUTTON_CLASS}
                 >
                   {isProcessing ? 'Processing...' : 'Approve'}
                 </button>
@@ -456,7 +449,7 @@ export default function RequestManagementUnified() {
                 <button
                   onClick={() => handleReturnAction('complete')}
                   disabled={isProcessing}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className={MODAL_PRIMARY_BUTTON_CLASS}
                 >
                   {isProcessing ? 'Processing...' : 'Confirm Return'}
                 </button>

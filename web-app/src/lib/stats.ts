@@ -43,3 +43,45 @@ export const calculateStats = <TLoan extends LoanLike, TReturn extends ReturnLik
     returnInProgressLoans: returnInProgressLoans.length
   };
 };
+
+export interface AdminStats {
+  borrowPending: number;
+  borrowApproved: number;
+  active: number;
+  overdue: number;
+  returnPending: number;
+  returnApproved: number;
+  returned: number;
+  rejected: number;
+}
+
+const initialAdminStats: AdminStats = {
+  borrowPending: 0,
+  borrowApproved: 0,
+  active: 0,
+  overdue: 0,
+  returnPending: 0,
+  returnApproved: 0,
+  returned: 0,
+  rejected: 0
+};
+
+export const calculateAdminStats = <TLoan extends LoanLike, TReturn extends ReturnLike>(
+  loans: TLoan[],
+  returnRequests?: TReturn[]
+): AdminStats => {
+  return loans.reduce<AdminStats>((acc, loan) => {
+    const state = getLendingState(loan, returnRequests);
+
+    if (state === 'borrow_pending') acc.borrowPending += 1;
+    if (state === 'borrow_approved') acc.borrowApproved += 1;
+    if (state === 'active') acc.active += 1;
+    if (state === 'overdue') acc.overdue += 1;
+    if (state === 'return_pending') acc.returnPending += 1;
+    if (state === 'return_approved') acc.returnApproved += 1;
+    if (state === 'returned') acc.returned += 1;
+    if (state === 'rejected') acc.rejected += 1;
+
+    return acc;
+  }, { ...initialAdminStats });
+};
