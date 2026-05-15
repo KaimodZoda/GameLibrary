@@ -34,6 +34,10 @@ export interface LoanSummary extends LoanLike {
   pickupDate?: string;
   completedAt?: string;
   completedBy?: number;
+  latestReturnRejection?: {
+    notes: string;
+    rejectedAt: string;
+  };
 }
 
 export interface ReturnSummary extends ReturnLike {

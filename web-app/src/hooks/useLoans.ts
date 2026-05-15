@@ -45,6 +45,10 @@ export interface UserLoan {
     createdAt: string;
     updatedAt: string;
   };
+  latestReturnRejection?: {
+    notes: string;
+    rejectedAt: string;
+  };
 }
 
 interface UseLoansReturn {

@@ -121,6 +121,21 @@ export default function MyLoans() {
   const secondaryButtonClass = "text-gray-600 hover:text-gray-900";
   const getLoanState = (loan: UserLoan) => getLendingState(loan, returnRequests);
   const getLoanDisplayStatus = (loan: UserLoan) => getDisplayStatus(loan, returnRequests);
+  const getReturnRejectionInfo = (loan: UserLoan) => {
+    const lendingState = getLoanState(loan);
+    if (
+      loan.latestReturnRejection
+      && (lendingState === 'active' || lendingState === 'overdue')
+    ) {
+      return loan.latestReturnRejection;
+    }
+    return null;
+  };
+  const handleRequestReturnAgain = (loanId: number) => {
+    setShowDetailsModal(false);
+    setSelectedLoan(null);
+    router.push(`/pages/return?loanId=${loanId}`);
+  };
 
   return (
     <>
@@ -209,10 +224,19 @@ export default function MyLoans() {
                           {new Date(loan.dueDate).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex justify-center">
+                          <div className="flex flex-col items-center gap-1">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusBadgeClass} ${getStatusColor(getLoanDisplayStatus(loan))}`}>
                               {getLoanDisplayStatus(loan)}
                             </span>
+                            {getReturnRejectionInfo(loan) && (
+                              <button
+                                type="button"
+                                onClick={() => handleDetailsClick(loan)}
+                                className="max-w-56 text-center text-xs text-red-600 underline hover:text-red-700"
+                              >
+                                Return request rejected
+                              </button>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -449,6 +473,26 @@ export default function MyLoans() {
                 }
                 return null;
               })()}
+
+              {/* Latest Return Rejection */}
+              {selectedLoan.latestReturnRejection && (
+                <div className="space-y-3">
+                  <h5 className="font-medium text-gray-900 border-b pb-2">Latest Return Rejection</h5>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-sm text-red-800">{selectedLoan.latestReturnRejection.notes}</p>
+                    <p className="text-xs text-red-700 mt-2">
+                      Rejected on {new Date(selectedLoan.latestReturnRejection.rejectedAt).toLocaleDateString()}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleRequestReturnAgain(selectedLoan.id)}
+                      className="mt-3 inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                    >
+                      Request Return Again
+                    </button>
+                  </div>
+                </div>
+              )}
               
               {/* Current Status */}
               <div className="pt-4 border-t">

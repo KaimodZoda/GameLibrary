@@ -58,10 +58,13 @@ export default function RequestManagementUnified() {
   const [loading, setLoading] = useState(true);
   const [selectedLoan, setSelectedLoan] = useState<LoanRequest | null>(null);
   const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
+  const [selectedReturnAction, setSelectedReturnAction] = useState<'approve' | 'reject' | 'complete' | null>(null);
   const [showLoanModal, setShowLoanModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [actionNotes, setActionNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const isReturnRejectAction = selectedReturnAction === 'reject';
+  const isReturnRejectReasonMissing = isReturnRejectAction && actionNotes.trim().length === 0;
 
   // Fetch loan requests
   const fetchLoans = async () => {
@@ -138,7 +141,7 @@ export default function RequestManagementUnified() {
     }
   };
 
-  const handleReturnAction = async (action: 'approve' | 'complete') => {
+  const handleReturnAction = async (action: 'approve' | 'complete' | 'reject') => {
     if (!selectedReturn) return;
     
     setIsProcessing(true);
@@ -153,6 +156,7 @@ export default function RequestManagementUnified() {
         await Promise.all([fetchReturns(), fetchLoans(), fetchQueueStats()]);
         setShowReturnModal(false);
         setSelectedReturn(null);
+        setSelectedReturnAction(null);
         setActionNotes('');
       }
     } catch (error) {
@@ -186,7 +190,7 @@ export default function RequestManagementUnified() {
       case 'borrow_approved':
         return { type: 'loan', actions: ['pickup'] };
       case 'return_pending':
-        return { type: 'return', actions: ['approve'] };
+        return { type: 'return', actions: ['approve', 'reject'] };
       case 'return_approved':
         return { type: 'return', actions: ['complete'] };
       default:
@@ -285,15 +289,35 @@ export default function RequestManagementUnified() {
                       )}
                       {availableActions.type === 'return' && availableActions.actions.includes('approve') && returnRequest && (
                         <button
-                          onClick={() => { setSelectedReturn(returnRequest); setShowReturnModal(true); }}
+                          onClick={() => {
+                            setSelectedReturn(returnRequest);
+                            setSelectedReturnAction('approve');
+                            setShowReturnModal(true);
+                          }}
                           className="text-green-600 hover:text-green-900"
                         >
                           Approve Return
                         </button>
                       )}
+                      {availableActions.type === 'return' && availableActions.actions.includes('reject') && returnRequest && (
+                        <button
+                          onClick={() => {
+                            setSelectedReturn(returnRequest);
+                            setSelectedReturnAction('reject');
+                            setShowReturnModal(true);
+                          }}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Reject Return
+                        </button>
+                      )}
                       {availableActions.type === 'return' && availableActions.actions.includes('complete') && returnRequest && (
                         <button
-                          onClick={() => { setSelectedReturn(returnRequest); setShowReturnModal(true); }}
+                          onClick={() => {
+                            setSelectedReturn(returnRequest);
+                            setSelectedReturnAction('complete');
+                            setShowReturnModal(true);
+                          }}
                           className="text-blue-600 hover:text-blue-900"
                         >
                           Confirm Return
@@ -394,7 +418,11 @@ export default function RequestManagementUnified() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-bold text-gray-900 mb-4">
-              {selectedReturn.status === 'pending' ? 'Return Approval' : 'Confirm Return'}
+              {selectedReturnAction === 'reject'
+                ? 'Reject Return Request'
+                : selectedReturnAction === 'approve'
+                  ? 'Approve Return Request'
+                  : 'Return Confirmation'}
             </h3>
             <div className="space-y-4 mb-6">
               <div>
@@ -419,25 +447,44 @@ export default function RequestManagementUnified() {
               )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Notes
+                  Admin Notes {isReturnRejectAction && <span className="text-red-500">*</span>}
                 </label>
                 <textarea
                   value={actionNotes}
                   onChange={(e) => setActionNotes(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Add any notes about this action..."
+                  placeholder={isReturnRejectAction ? 'Required for reject action' : 'Add any notes about this action...'}
                 />
+                {isReturnRejectAction && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Rejection reason is required when you click Reject.
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex justify-end space-x-3">
               <button
-                onClick={() => { setShowReturnModal(false); setSelectedReturn(null); setActionNotes(''); }}
+                onClick={() => {
+                  setShowReturnModal(false);
+                  setSelectedReturn(null);
+                  setSelectedReturnAction(null);
+                  setActionNotes('');
+                }}
                 className={MODAL_SECONDARY_BUTTON_CLASS}
               >
                 Cancel
               </button>
-              {selectedReturn.status === 'pending' ? (
+              {selectedReturnAction === 'reject' && (
+                <button
+                  onClick={() => handleReturnAction('reject')}
+                  disabled={isProcessing || isReturnRejectReasonMissing}
+                  className={MODAL_DANGER_BUTTON_CLASS}
+                >
+                  {isProcessing ? 'Processing...' : 'Reject'}
+                </button>
+              )}
+              {selectedReturnAction === 'approve' && (
                 <button
                   onClick={() => handleReturnAction('approve')}
                   disabled={isProcessing}
@@ -445,7 +492,8 @@ export default function RequestManagementUnified() {
                 >
                   {isProcessing ? 'Processing...' : 'Approve'}
                 </button>
-              ) : (
+              )}
+              {selectedReturnAction === 'complete' && (
                 <button
                   onClick={() => handleReturnAction('complete')}
                   disabled={isProcessing}

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAuth, getUserId } from '@/lib/auth';
 import { calculateStats } from '@/lib/stats';
 import { toPublicReturnMethod } from '@/lib/return-method';
+import { AdminActionType } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const userId = getUserId(authResult);
 
-    const [loans, returnRequests] = await Promise.all([
+    const [loans, returnRequests, returnRejections] = await Promise.all([
       prisma.loan.findMany({
         where: { userId },
         select: {
@@ -62,15 +63,43 @@ export async function GET(request: NextRequest) {
         orderBy: {
           createdAt: 'desc'
         }
+      }),
+      prisma.adminAction.findMany({
+        where: {
+          action: AdminActionType.return_rejected,
+          loan: {
+            userId
+          }
+        },
+        select: {
+          loanId: true,
+          notes: true,
+          actionDate: true
+        },
+        orderBy: {
+          actionDate: 'desc'
+        }
       })
     ]);
+
+    const latestReturnRejectionByLoan = new Map<number, { notes: string; rejectedAt: string }>();
+    for (const action of returnRejections) {
+      if (!action.loanId || latestReturnRejectionByLoan.has(action.loanId)) continue;
+      latestReturnRejectionByLoan.set(action.loanId, {
+        notes: action.notes?.trim() || 'Your return request was rejected by admin.',
+        rejectedAt: action.actionDate.toISOString()
+      });
+    }
 
     const stats = calculateStats(loans, returnRequests);
 
     return NextResponse.json({
       success: true,
       data: {
-        loans,
+        loans: loans.map((loan) => ({
+          ...loan,
+          latestReturnRejection: latestReturnRejectionByLoan.get(loan.id)
+        })),
         returnRequests: returnRequests.map((returnRequest) => ({
           ...returnRequest,
           requestedReturnDate: returnRequest.createdAt,

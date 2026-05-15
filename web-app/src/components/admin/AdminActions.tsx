@@ -71,6 +71,7 @@ export default function AdminActions() {
       case 'loan_approved': return 'Loan Approved';
       case 'loan_rejected': return 'Loan Rejected';
       case 'return_approved': return 'Return Approved';
+      case 'return_rejected': return 'Return Rejected';
       case 'return_completed': return 'Return Completed';
       default: return action;
     }
@@ -81,6 +82,7 @@ export default function AdminActions() {
       case 'loan_approved': return 'bg-green-100 text-green-800';
       case 'loan_rejected': return 'bg-red-100 text-red-800';
       case 'return_approved': return 'bg-blue-100 text-blue-800';
+      case 'return_rejected': return 'bg-red-100 text-red-800';
       case 'return_completed': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
