@@ -39,6 +39,14 @@ const GameCard = ({ game, loans = [], returnRequests = [], onBorrowClick, onUpda
     return getLoanStateForGame(loan) === 'borrow_pending';
   });
 
+  const hasUserPendingLoan = loans.some((loan) => {
+    const isUserLoan = normalizedSessionUserId !== undefined && loan.userId === normalizedSessionUserId;
+    const state = getLoanStateForGame(loan);
+    return isUserLoan && state === 'borrow_pending';
+  });
+
+  const shouldShowPending = showGlobalStatus ? hasUserPendingLoan : hasPendingLoan;
+
   const hasReturnInProgress = loans.some((loan) => {
     const state = getLoanStateForGame(loan);
     return state === 'return_pending' || state === 'return_approved';
@@ -52,6 +60,14 @@ const GameCard = ({ game, loans = [], returnRequests = [], onBorrowClick, onUpda
   const hasOverdueLoan = loans.some((loan) => {
     return getLoanStateForGame(loan) === 'overdue';
   });
+
+  const hasUserOverdueLoan = loans.some((loan) => {
+    const isUserLoan = normalizedSessionUserId !== undefined && loan.userId === normalizedSessionUserId;
+    const state = getLoanStateForGame(loan);
+    return isUserLoan && state === 'overdue';
+  });
+
+  const shouldShowOverdue = showGlobalStatus ? hasUserOverdueLoan : hasOverdueLoan;
 
   const hasUserActiveLoan = loans.some((loan) => {
     const isUserLoan = normalizedSessionUserId !== undefined && loan.userId === normalizedSessionUserId;
@@ -105,9 +121,9 @@ const GameCard = ({ game, loans = [], returnRequests = [], onBorrowClick, onUpda
                 ? 'text-orange-600'
                 : hasReturnInProgress
                   ? 'text-purple-600'
-                  : hasOverdueLoan
+                  : shouldShowOverdue
                     ? 'text-red-600'
-                    : showGlobalStatus
+                  : showGlobalStatus
                       ? hasUserActiveLoan
                         ? 'text-green-600'
                         : hasActiveLoan
@@ -120,11 +136,11 @@ const GameCard = ({ game, loans = [], returnRequests = [], onBorrowClick, onUpda
                         : 'text-red-600'
             }`}>
               <i className={`fas ${
-                hasPendingLoan
+                shouldShowPending
                   ? 'fa-hourglass-half'
                   : hasReturnInProgress
                     ? 'fa-spinner'
-                    : hasOverdueLoan
+                    : shouldShowOverdue
                       ? 'fa-exclamation-triangle'
                       : showGlobalStatus
                         ? hasUserActiveLoan
@@ -138,18 +154,18 @@ const GameCard = ({ game, loans = [], returnRequests = [], onBorrowClick, onUpda
                           ? 'fa-check-circle'
                           : 'fa-times-circle'
               } mr-1`} aria-hidden="true"></i>
-              {hasPendingLoan ? 'Pending' : hasReturnInProgress ? 'Return in Progress' : hasOverdueLoan ? 'Overdue' : showGlobalStatus ? (hasUserActiveLoan ? 'Active' : hasActiveLoan ? 'Borrowed' : game.available ? 'Available' : 'Borrowed') : (game.available ? 'Available' : 'Borrowed')}
+              {shouldShowPending ? 'Pending' : hasReturnInProgress ? 'Return in Progress' : shouldShowOverdue ? 'Overdue' : showGlobalStatus ? (hasUserActiveLoan ? 'Active' : hasActiveLoan ? 'Borrowed' : game.available ? 'Available' : 'Borrowed') : (game.available ? 'Available' : 'Borrowed')}
             </span>
           )}
           <button
             className={`px-3 py-1 rounded text-sm ${
               isPublic
                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                : hasPendingLoan
+                : shouldShowPending
                   ? 'bg-orange-600 text-white cursor-not-allowed'
                   : hasReturnInProgress
                     ? 'bg-purple-600 text-white cursor-not-allowed'
-                    : hasOverdueLoan
+                    : shouldShowOverdue
                       ? 'bg-red-600 text-white cursor-not-allowed'
                       : showGlobalStatus
                         ? hasUserActiveLoan
@@ -163,10 +179,10 @@ const GameCard = ({ game, loans = [], returnRequests = [], onBorrowClick, onUpda
                           ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                           : 'bg-gray-400 text-white cursor-not-allowed'
             }`}
-            disabled={isPublic ? false : (hasPendingLoan || hasReturnInProgress || hasOverdueLoan || (showGlobalStatus ? hasActiveLoan || !game.available : !game.available))}
+            disabled={isPublic ? false : (shouldShowPending || hasReturnInProgress || shouldShowOverdue || (showGlobalStatus ? hasActiveLoan || !game.available : !game.available))}
             onClick={handleBorrow}
           >
-            {isPublic ? 'Book now!' : hasPendingLoan ? 'Pending' : hasReturnInProgress ? 'Return in Progress' : hasOverdueLoan ? 'Overdue' : showGlobalStatus ? (hasUserActiveLoan ? 'Active' : hasActiveLoan ? 'Unavailable' : game.available ? 'Borrow' : 'Unavailable') : (game.available ? 'Borrow' : 'Unavailable')}
+            {isPublic ? 'Book now!' : shouldShowPending ? 'Pending' : hasReturnInProgress ? 'Return in Progress' : shouldShowOverdue ? 'Overdue' : showGlobalStatus ? (hasUserActiveLoan ? 'Active' : hasActiveLoan ? 'Unavailable' : game.available ? 'Borrow' : 'Unavailable') : (game.available ? 'Borrow' : 'Unavailable')}
           </button>
         </div>
       </div>
